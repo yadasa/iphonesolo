@@ -17,8 +17,9 @@ void main() {
 
   float horizontalStretch = 1.0 + amount * 0.78 * ramp;
   float x = anchorX + (a_position.x - anchorX) * horizontalStretch;
+  float verticalScale = 1.0 - amount * 0.55 * ramp;
   float directionalSkew = -u_tilt * 0.13 * ramp;
-  float y = a_position.y + directionalSkew;
+  float y = a_position.y * verticalScale + directionalSkew;
   vec2 projected = vec2(x, y);
   gl_Position = vec4(projected, 0.0, 1.0);
   v_uv = a_uv;
@@ -57,9 +58,10 @@ void main() {
   color += texture(u_texture, uv - blurStep * 3.3) * 0.03;
   color += texture(u_texture, uv + blurStep * 3.3) * 0.03;
 
-  float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), 1.10);
-  float depthShade = pow(amount, 0.75) * shadowGradient * 0.88;
-  color.rgb *= max(0.10, 1.0 - depthShade);
+  float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), 0.72);
+  float tiltShadow = smoothstep(0.12, 0.82, amount);
+  float depthShade = tiltShadow * shadowGradient * 1.18;
+  color.rgb *= max(0.0, 1.0 - depthShade);
   outColor = color;
 }`;
 

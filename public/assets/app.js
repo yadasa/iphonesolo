@@ -188,7 +188,7 @@ canvas.addEventListener("pointerdown", event => {
 canvas.addEventListener("pointermove", event => {
   if (!dragging) return;
   const delta = (event.clientX - pointerStart) / Math.max(1, innerWidth);
-  targetTilt = clamp(tiltStart + delta * 135, -125, 125);
+  targetTilt = clamp(tiltStart + delta * 190, -180, 180);
   if (Math.abs(delta) > .04) hasInteracted = true;
 });
 

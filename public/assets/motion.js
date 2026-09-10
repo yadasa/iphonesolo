@@ -9,7 +9,7 @@ export function smooth(current, target, dt, tau = 0.055) {
   return current + (target - current) * alpha;
 }
 
-export function tiltToFold(tilt, { deadZone = 1.25, maxTilt = 120 } = {}) {
+export function tiltToFold(tilt, { deadZone = 1.25, maxTilt = 180 } = {}) {
   const magnitude = Math.max(0, Math.abs(tilt) - deadZone);
   const linear = clamp(magnitude / (maxTilt - deadZone), 0, 1);
   const curved = linear * linear * (3 - 2 * linear);
@@ -20,7 +20,7 @@ export function tiltToFold(tilt, { deadZone = 1.25, maxTilt = 120 } = {}) {
   };
 }
 
-export function screenAdjustedTilt(event, screenAngle = 0) {
+export function screenAdjustedTilt(event, screenAngle = 0, previousSample = null) {
   const beta = event.beta ?? 0;
   const gamma = event.gamma ?? 0;
   const angle = normalizeAngle(screenAngle);
@@ -29,9 +29,18 @@ export function screenAdjustedTilt(event, screenAngle = 0) {
   // crosses that plane, beta moves into the opposite hemisphere and gamma
   // counts back down. Reconstruct the continuous roll so 90–180° still works.
   if (Math.abs(beta) > 90) {
-    if (gamma > 0) return 180 - gamma;
-    if (gamma < 0) return -180 - gamma;
-    return beta >= 0 ? 180 : -180;
+    let extended;
+    if (gamma > 0) extended = 180 - gamma;
+    else if (gamma < 0) extended = -180 - gamma;
+    else extended = beta >= 0 ? 180 : -180;
+
+    if (previousSample != null) {
+      const candidates = [extended, -extended];
+      return candidates.reduce((closest, candidate) =>
+        Math.abs(candidate - previousSample) < Math.abs(closest - previousSample) ? candidate : closest
+      );
+    }
+    return extended;
   }
   return gamma;
 }
@@ -41,6 +50,7 @@ export class MotionTracker {
   target = 0;
   value = 0;
   listening = false;
+  lastSample = null;
 
   constructor(onSample) {
     this.onSample = onSample;
@@ -65,9 +75,10 @@ export class MotionTracker {
   handle(event) {
     if (event.beta == null || event.gamma == null) return;
     const screenAngle = screen.orientation?.angle ?? window.orientation ?? 0;
-    const sample = screenAdjustedTilt(event, screenAngle);
+    const sample = screenAdjustedTilt(event, screenAngle, this.lastSample);
+    this.lastSample = sample;
     if (this.baseline == null) this.baseline = sample;
-    this.target = normalizeAngle(sample - this.baseline);
+    this.target = clamp(sample - this.baseline, -180, 180);
     this.onSample?.(this.target);
   }
 
@@ -75,5 +86,6 @@ export class MotionTracker {
     this.baseline = null;
     this.target = 0;
     this.value = 0;
+    this.lastSample = null;
   }
 }
