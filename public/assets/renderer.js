@@ -6,18 +6,21 @@ uniform float u_aspect;
 out vec2 v_uv;
 
 void main() {
-  // Rotate one continuous surface opposite the physical tilt. There is no
-  // hinge: every vertex participates in the same projective transform.
-  float theta = radians(-u_tilt * 66.0);
-  float c = cos(theta);
-  float s = sin(theta);
-  float x = a_position.x * c;
-  float z = -a_position.x * s;
-  float perspective = 1.0 / max(0.42, 1.0 - z * 0.52);
-  vec2 projected = vec2(x, a_position.y) * perspective;
-  float coverage = mix(1.0, 1.16, abs(u_tilt));
-  projected *= coverage;
-  projected.x += u_tilt * 0.12;
+  // The edge the device tilts toward is fixed. Transformation strength grows
+  // continuously with distance from that anchor and is mirrored by direction.
+  float amount = abs(u_tilt);
+  float anchorX = u_tilt < 0.0 ? -1.0 : 1.0;
+  float distanceFromAnchor = u_tilt < 0.0
+    ? (a_position.x + 1.0) * 0.5
+    : (1.0 - a_position.x) * 0.5;
+  float ramp = smoothstep(0.0, 1.0, distanceFromAnchor);
+
+  float horizontalStretch = 1.0 + amount * 0.42 * ramp;
+  float x = anchorX + (a_position.x - anchorX) * horizontalStretch;
+  float verticalCompression = 1.0 - amount * 0.30 * ramp;
+  float directionalSkew = -u_tilt * 0.13 * ramp;
+  float y = a_position.y * verticalCompression + directionalSkew;
+  vec2 projected = vec2(x, y);
   gl_Position = vec4(projected, 0.0, 1.0);
   v_uv = a_uv;
 }`;
@@ -40,8 +43,9 @@ void main() {
   }
   vec2 uv = v_uv * u_uvScale + u_uvOffset;
   float amount = abs(u_tilt);
-  float farSide = u_tilt < 0.0 ? v_uv.x : 1.0 - v_uv.x;
-  float blurRadius = smoothstep(0.04, 1.0, amount) * mix(1.5, 12.0, farSide);
+  float distanceFromAnchor = u_tilt < 0.0 ? v_uv.x : 1.0 - v_uv.x;
+  float blurGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), 1.35);
+  float blurRadius = smoothstep(0.04, 1.0, amount) * blurGradient * 18.0;
   vec2 blurStep = u_texelSize * blurRadius * normalize(vec2(1.0, u_tilt * 0.18));
 
   vec4 color = texture(u_texture, uv) * 0.20;
@@ -54,7 +58,7 @@ void main() {
   color += texture(u_texture, uv - blurStep * 3.3) * 0.03;
   color += texture(u_texture, uv + blurStep * 3.3) * 0.03;
 
-  float depthShade = amount * mix(0.08, 0.38, farSide);
+  float depthShade = amount * blurGradient * 0.44;
   color.rgb *= 1.0 - depthShade;
   outColor = color;
 }`;
