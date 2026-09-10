@@ -3,6 +3,7 @@ in vec2 a_position;
 in vec2 a_uv;
 uniform float u_tilt;
 uniform float u_aspect;
+uniform float u_planeHeight;
 out vec2 v_uv;
 
 void main() {
@@ -15,11 +16,12 @@ void main() {
     : (1.0 - a_position.x) * 0.5;
   float ramp = smoothstep(0.0, 1.0, distanceFromAnchor);
 
-  float horizontalStretch = 1.0 + amount * 0.78 * ramp;
+  float horizontalStretch = 1.0 + amount * 1.56 * ramp;
   float x = anchorX + (a_position.x - anchorX) * horizontalStretch;
   float verticalScale = 1.0 - amount * 0.55 * ramp;
-  float directionalSkew = -u_tilt * 0.13 * ramp;
-  float y = a_position.y * verticalScale + directionalSkew;
+  float directionalSkew = -u_tilt * 0.26 * ramp;
+  float baseY = a_position.y * u_planeHeight;
+  float y = baseY * verticalScale + directionalSkew;
   vec2 projected = vec2(x, y);
   gl_Position = vec4(projected, 0.0, 1.0);
   v_uv = a_uv;
@@ -45,7 +47,7 @@ void main() {
   float amount = abs(u_tilt);
   float distanceFromAnchor = u_tilt < 0.0 ? v_uv.x : 1.0 - v_uv.x;
   float blurGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), 1.35);
-  float blurRadius = smoothstep(0.04, 1.0, amount) * blurGradient * 18.0;
+  float blurRadius = smoothstep(0.04, 1.0, amount) * blurGradient * 36.0;
   vec2 blurStep = u_texelSize * blurRadius * normalize(vec2(1.0, u_tilt * 0.18));
 
   vec4 color = texture(u_texture, uv) * 0.20;
@@ -60,7 +62,7 @@ void main() {
 
   float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), 0.72);
   float tiltShadow = smoothstep(0.12, 0.82, amount);
-  float depthShade = tiltShadow * shadowGradient * 1.18;
+  float depthShade = tiltShadow * shadowGradient * 2.36;
   color.rgb *= max(0.0, 1.0 - depthShade);
   outColor = color;
 }`;
@@ -121,6 +123,7 @@ export class FoldRenderer {
       uv: gl.getAttribLocation(this.program, "a_uv"),
       tilt: uniform("u_tilt"),
       aspect: uniform("u_aspect"),
+      planeHeight: uniform("u_planeHeight"),
       hasTexture: uniform("u_hasTexture"),
       uvScale: uniform("u_uvScale"),
       uvOffset: uniform("u_uvOffset"),
@@ -130,7 +133,7 @@ export class FoldRenderer {
 
   setupGeometry() {
     const gl = this.gl;
-    const segments = 64;
+    const segments = 256;
     const data = [];
     for (let index = 0; index < segments; index += 1) {
       const x0 = -1 + (index / segments) * 2;
@@ -245,12 +248,12 @@ export class FoldRenderer {
     }
     const viewportAspect = this.canvas.width / this.canvas.height;
     const mediaAspect = this.mediaWidth / this.mediaHeight;
-    let scaleX = 1;
-    let scaleY = 1;
-    if (mediaAspect > viewportAspect) scaleX = viewportAspect / mediaAspect;
-    else scaleY = mediaAspect / viewportAspect;
-    gl.uniform2f(this.locations.uvScale, scaleX, scaleY);
-    gl.uniform2f(this.locations.uvOffset, (1 - scaleX) / 2, (1 - scaleY) / 2);
+    // Width-fit at neutral: the full media width maps to the full viewport.
+    // Aspect ratio is preserved geometrically, so excess height lives beyond
+    // the physical viewport instead of being discarded by cover-style UV crop.
+    gl.uniform1f(this.locations.planeHeight, viewportAspect / mediaAspect);
+    gl.uniform2f(this.locations.uvScale, 1, 1);
+    gl.uniform2f(this.locations.uvOffset, 0, 0);
     gl.uniform2f(this.locations.texelSize, 1 / this.mediaWidth, 1 / this.mediaHeight);
     gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
     this.lastFold = signedTilt;

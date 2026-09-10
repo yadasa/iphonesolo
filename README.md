@@ -4,7 +4,7 @@ A clean-room, mobile-first reconstruction of the interaction behind Solo: choose
 
 ## What is included
 
-- WebGL 2 renderer with one continuous perspective plane, direction-mirrored edge anchoring, distance-ramped stretch/skew, Gaussian blur and shadow, cover cropping, and capped device-pixel ratio
+- WebGL 2 renderer with one continuous 256-strip perspective plane, direction-mirrored edge anchoring, doubled distance-ramped stretch/skew, Gaussian blur and shadow, width-fit media with natural vertical overflow, and capped device-pixel ratio
 - Continuous physical tilt response through 180°, exaggerated far-edge horizontal expansion, distance-ramped vertical compression, and a true-black depth-shadow gradient
 - Frame-synchronized local video textures with inline, muted looping playback
 - Render-loop optimizations: cached GPU locations, resize observation, new-frame-only video uploads, idle draw skipping, and background suspension
