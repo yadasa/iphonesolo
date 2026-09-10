@@ -1,42 +1,36 @@
 const VERTEX_SHADER = `#version 300 es
 in vec2 a_position;
 in vec2 a_uv;
-uniform float u_fold;
-uniform float u_side;
+uniform float u_tilt;
 uniform float u_aspect;
 out vec2 v_uv;
-out float v_light;
 
 void main() {
-  float sideMask = u_side > 0.0
-    ? smoothstep(-0.12, 0.18, a_position.x)
-    : 1.0 - smoothstep(-0.18, 0.12, a_position.x);
-  float hinge = 0.0;
-  float localX = a_position.x - hinge;
-  float signedAngle = radians(u_fold) * u_side * sideMask;
-  float c = cos(signedAngle);
-  float s = sin(signedAngle);
-  float x = localX * c + hinge;
-  float z = -localX * s;
-  float perspective = 1.0 / max(0.48, 1.0 - z * 0.46);
-  vec2 projected = vec2(x * perspective, a_position.y * perspective);
-  float aspectCorrection = mix(1.0, mix(1.0, u_aspect, 0.08), sin(abs(signedAngle)));
-  projected.x /= aspectCorrection;
+  // Rotate one continuous surface opposite the physical tilt. There is no
+  // hinge: every vertex participates in the same projective transform.
+  float theta = radians(-u_tilt * 66.0);
+  float c = cos(theta);
+  float s = sin(theta);
+  float x = a_position.x * c;
+  float z = -a_position.x * s;
+  float perspective = 1.0 / max(0.42, 1.0 - z * 0.52);
+  vec2 projected = vec2(x, a_position.y) * perspective;
+  float coverage = mix(1.0, 1.16, abs(u_tilt));
+  projected *= coverage;
+  projected.x += u_tilt * 0.12;
   gl_Position = vec4(projected, 0.0, 1.0);
   v_uv = a_uv;
-  float hingeGlow = exp(-pow(a_position.x / 0.13, 2.0));
-  v_light = mix(1.0, 0.72 + 0.28 * abs(c), sideMask) + hingeGlow * sin(abs(signedAngle)) * 0.07;
 }`;
 
 const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 uniform sampler2D u_texture;
 uniform bool u_hasTexture;
-uniform float u_fold;
+uniform float u_tilt;
 uniform vec2 u_uvScale;
 uniform vec2 u_uvOffset;
+uniform vec2 u_texelSize;
 in vec2 v_uv;
-in float v_light;
 out vec4 outColor;
 
 void main() {
@@ -44,11 +38,24 @@ void main() {
     outColor = vec4(0.012, 0.014, 0.02, 1.0);
     return;
   }
-  vec4 color = texture(u_texture, v_uv * u_uvScale + u_uvOffset);
-  float hingeDistance = abs(v_uv.x - 0.5);
-  float softHinge = 1.0 - smoothstep(0.0, 0.075, hingeDistance);
-  float foldStrength = smoothstep(0.0, 15.0, u_fold);
-  color.rgb *= v_light * (1.0 - softHinge * 0.11 * foldStrength);
+  vec2 uv = v_uv * u_uvScale + u_uvOffset;
+  float amount = abs(u_tilt);
+  float farSide = u_tilt < 0.0 ? v_uv.x : 1.0 - v_uv.x;
+  float blurRadius = smoothstep(0.04, 1.0, amount) * mix(1.5, 12.0, farSide);
+  vec2 blurStep = u_texelSize * blurRadius * normalize(vec2(1.0, u_tilt * 0.18));
+
+  vec4 color = texture(u_texture, uv) * 0.20;
+  color += texture(u_texture, uv - blurStep * 0.75) * 0.16;
+  color += texture(u_texture, uv + blurStep * 0.75) * 0.16;
+  color += texture(u_texture, uv - blurStep * 1.5) * 0.13;
+  color += texture(u_texture, uv + blurStep * 1.5) * 0.13;
+  color += texture(u_texture, uv - blurStep * 2.4) * 0.08;
+  color += texture(u_texture, uv + blurStep * 2.4) * 0.08;
+  color += texture(u_texture, uv - blurStep * 3.3) * 0.03;
+  color += texture(u_texture, uv + blurStep * 3.3) * 0.03;
+
+  float depthShade = amount * mix(0.08, 0.38, farSide);
+  color.rgb *= 1.0 - depthShade;
   outColor = color;
 }`;
 
@@ -106,12 +113,12 @@ export class FoldRenderer {
     return {
       position: gl.getAttribLocation(this.program, "a_position"),
       uv: gl.getAttribLocation(this.program, "a_uv"),
-      fold: uniform("u_fold"),
-      side: uniform("u_side"),
+      tilt: uniform("u_tilt"),
       aspect: uniform("u_aspect"),
       hasTexture: uniform("u_hasTexture"),
       uvScale: uniform("u_uvScale"),
-      uvOffset: uniform("u_uvOffset")
+      uvOffset: uniform("u_uvOffset"),
+      texelSize: uniform("u_texelSize")
     };
   }
 
@@ -210,17 +217,17 @@ export class FoldRenderer {
   render(fold, side = this.side) {
     const gl = this.gl;
     this.side = side || 1;
+    const signedTilt = this.side * Math.min(1, Math.max(0, fold / 82));
     const supportsFrameCallback = this.video && "requestVideoFrameCallback" in this.video;
     const fallbackVideoFrame = this.video && !supportsFrameCallback && this.video.currentTime !== this.lastVideoTime;
     const hasFreshVideoFrame = Boolean(this.video && (this.videoFrameReady || fallbackVideoFrame));
-    const transformChanged = Math.abs(fold - this.lastFold) > 0.025 || this.side !== this.lastSide;
+    const transformChanged = Math.abs(signedTilt - this.lastFold) > 0.0003;
     if (!this.dirty && !transformChanged && !hasFreshVideoFrame) return false;
 
     gl.clearColor(0.012, 0.014, 0.02, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(this.program);
-    gl.uniform1f(this.locations.fold, fold);
-    gl.uniform1f(this.locations.side, this.side);
+    gl.uniform1f(this.locations.tilt, signedTilt);
     gl.uniform1f(this.locations.aspect, this.canvas.width / this.canvas.height);
     gl.uniform1i(this.locations.hasTexture, this.hasTexture);
     gl.activeTexture(gl.TEXTURE0);
@@ -238,8 +245,9 @@ export class FoldRenderer {
     else scaleY = mediaAspect / viewportAspect;
     gl.uniform2f(this.locations.uvScale, scaleX, scaleY);
     gl.uniform2f(this.locations.uvOffset, (1 - scaleX) / 2, (1 - scaleY) / 2);
+    gl.uniform2f(this.locations.texelSize, 1 / this.mediaWidth, 1 / this.mediaHeight);
     gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
-    this.lastFold = fold;
+    this.lastFold = signedTilt;
     this.lastSide = this.side;
     this.dirty = false;
     return true;
