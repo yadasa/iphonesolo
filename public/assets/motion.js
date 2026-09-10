@@ -9,7 +9,7 @@ export function smooth(current, target, dt, tau = 0.055) {
   return current + (target - current) * alpha;
 }
 
-export function tiltToFold(tilt, { deadZone = 1.25, maxTilt = 47 } = {}) {
+export function tiltToFold(tilt, { deadZone = 1.25, maxTilt = 120 } = {}) {
   const magnitude = Math.max(0, Math.abs(tilt) - deadZone);
   const linear = clamp(magnitude / (maxTilt - deadZone), 0, 1);
   const curved = linear * linear * (3 - 2 * linear);
@@ -25,6 +25,14 @@ export function screenAdjustedTilt(event, screenAngle = 0) {
   const gamma = event.gamma ?? 0;
   const angle = normalizeAngle(screenAngle);
   if (Math.abs(angle) === 90) return angle > 0 ? -beta : beta;
+  // DeviceOrientation gamma is constrained to ±90°. Once a portrait device
+  // crosses that plane, beta moves into the opposite hemisphere and gamma
+  // counts back down. Reconstruct the continuous roll so 90–180° still works.
+  if (Math.abs(beta) > 90) {
+    if (gamma > 0) return 180 - gamma;
+    if (gamma < 0) return -180 - gamma;
+    return beta >= 0 ? 180 : -180;
+  }
   return gamma;
 }
 

@@ -16,10 +16,12 @@ test("normalizeAngle handles wraparound", () => {
 
 test("tilt mapping is centered, bounded, and symmetric", () => {
   assert.equal(tiltToFold(0).angle, 0);
-  assert.equal(tiltToFold(100).angle, 82);
-  assert.equal(tiltToFold(-100).angle, 82);
+  assert.equal(tiltToFold(120).angle, 82);
+  assert.equal(tiltToFold(-120).angle, 82);
   assert.equal(tiltToFold(-20).progress, tiltToFold(20).progress);
   assert.equal(tiltToFold(-20).direction, -1);
+  assert.ok(tiltToFold(45).angle < tiltToFold(90).angle);
+  assert.ok(tiltToFold(90).angle < tiltToFold(110).angle);
 });
 
 test("smoothing is frame-rate independent and bounded", () => {
@@ -32,4 +34,6 @@ test("screen orientation chooses the correct physical axis", () => {
   assert.equal(screenAdjustedTilt(event, 0), 12);
   assert.equal(screenAdjustedTilt(event, 90), -30);
   assert.equal(screenAdjustedTilt(event, -90), 30);
+  assert.equal(screenAdjustedTilt({ beta: 120, gamma: 70 }, 0), 110);
+  assert.equal(screenAdjustedTilt({ beta: -120, gamma: -70 }, 0), -110);
 });
