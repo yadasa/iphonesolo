@@ -55,8 +55,10 @@ dialog::backdrop { background: rgba(0,0,0,.68); backdrop-filter: blur(12px); }
 dialog h1 { margin: 12px 0 8px; font-size: 24px; letter-spacing: -.04em; }
 dialog p { margin: 0 0 22px; color: rgba(255,255,255,.63); line-height: 1.55; }
 .dialog-close { position: absolute; top: 12px; right: 14px; border: 0; background: none; font-size: 25px; color: rgba(255,255,255,.48); cursor: pointer; }
-.install-mark { width: 54px; height: 54px; border-radius: 17px; margin: auto; display: grid; place-items: center; background: #f5f6f8; color: #090a0d; font-size: 25px; }
+.install-mark, .motion-mark { width: 54px; height: 54px; border-radius: 17px; margin: auto; display: grid; place-items: center; background: #f5f6f8; color: #090a0d; font-size: 25px; }
 .dialog-done { width: 100%; }
+.motion-continue { width: 100%; }
+.text-button { width: 100%; margin-top: 13px; padding: 8px; border: 0; background: none; color: rgba(255,255,255,.58); cursor: pointer; }
 noscript { position: absolute; inset: auto 16px 16px; z-index: 20; }
 
 @media (min-width: 700px) {

@@ -1,7 +1,7 @@
 {
   "name": "Keiazo Tilt",
   "short_name": "Tilt",
-  "description": "A motion-tracked folding display illusion for your photos.",
+  "description": "A motion-tracked folding display illusion for your photos and videos.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

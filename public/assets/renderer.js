@@ -28,6 +28,8 @@ const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 uniform sampler2D u_texture;
 uniform bool u_hasTexture;
+uniform vec2 u_uvScale;
+uniform vec2 u_uvOffset;
 in vec2 v_uv;
 in float v_light;
 out vec4 outColor;
@@ -37,7 +39,7 @@ void main() {
     outColor = vec4(0.012, 0.014, 0.02, 1.0);
     return;
   }
-  vec4 color = texture(u_texture, v_uv);
+  vec4 color = texture(u_texture, v_uv * u_uvScale + u_uvOffset);
   float edge = 1.0 - smoothstep(0.0, 0.018, abs(v_uv.x - 0.5));
   color.rgb *= v_light * (1.0 - edge * 0.16);
   outColor = color;
@@ -61,6 +63,9 @@ export class FoldRenderer {
     this.program = this.createProgram();
     this.texture = this.gl.createTexture();
     this.hasTexture = false;
+    this.video = null;
+    this.mediaWidth = 1;
+    this.mediaHeight = 1;
     this.side = 1;
     this.setupGeometry();
     this.resize();
@@ -116,6 +121,24 @@ export class FoldRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    this.video = null;
+    this.mediaWidth = image.naturalWidth;
+    this.mediaHeight = image.naturalHeight;
+    this.hasTexture = true;
+  }
+
+  setVideo(video) {
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+    this.video = video;
+    this.mediaWidth = video.videoWidth;
+    this.mediaHeight = video.videoHeight;
     this.hasTexture = true;
   }
 
@@ -132,6 +155,17 @@ export class FoldRenderer {
     gl.uniform1i(gl.getUniformLocation(this.program, "u_hasTexture"), this.hasTexture);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    if (this.video && this.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.video);
+    }
+    const viewportAspect = this.canvas.width / this.canvas.height;
+    const mediaAspect = this.mediaWidth / this.mediaHeight;
+    let scaleX = 1;
+    let scaleY = 1;
+    if (mediaAspect > viewportAspect) scaleX = viewportAspect / mediaAspect;
+    else scaleY = mediaAspect / viewportAspect;
+    gl.uniform2f(gl.getUniformLocation(this.program, "u_uvScale"), scaleX, scaleY);
+    gl.uniform2f(gl.getUniformLocation(this.program, "u_uvOffset"), (1 - scaleX) / 2, (1 - scaleY) / 2);
     gl.drawArrays(gl.TRIANGLES, 0, 12);
   }
 }

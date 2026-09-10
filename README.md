@@ -1,14 +1,15 @@
 # Keiazo Tilt
 
-A clean-room, mobile-first reconstruction of the interaction behind Solo: choose a photo locally, then use device motion or pointer drag to create a folding-display illusion.
+A clean-room, mobile-first reconstruction of the interaction behind Solo: choose a photo or video locally, then use device motion or pointer drag to create a folding-display illusion.
 
 ## What is included
 
-- WebGL 2 renderer with a two-panel hinge, perspective, seam shading, and capped device-pixel ratio
-- iOS motion-permission flow, orientation compensation, calibration, dead zone, smoothing, and angle wraparound handling
+- WebGL 2 renderer with a two-panel hinge, perspective, seam shading, cover cropping, and capped device-pixel ratio
+- Frame-synchronized local video textures with inline, muted looping playback
+- Guided iOS motion-permission flow, orientation compensation, calibration, dead zone, smoothing, and angle wraparound handling
 - Pointer-drag fallback for desktop testing
 - Local-only image decoding through an ephemeral object URL; selected photos are never uploaded or persisted
-- Fullscreen mode, safe-area-aware mobile UI, iOS Home Screen guidance, and reduced-motion support
+- Fullscreen mode, safe-area-aware mobile UI, post-interaction iOS Home Screen guidance, and reduced-motion support
 - Installable/offline PWA shell
 - Firebase Hosting configuration targeting `keiazotilt`
 - GitHub Actions tests and production deployment on every push to `main`
@@ -40,7 +41,7 @@ The `Deploy Firebase Hosting` workflow validates the JavaScript and unit tests b
 
 ## Privacy
 
-Imported photos remain inside the browser tab. The app does not contain analytics, a database, an upload endpoint, or any server-side image processing.
+Imported photos and videos remain inside the browser tab. The app does not contain analytics, a database, an upload endpoint, or any server-side media processing.
 
 ## Attribution
 
