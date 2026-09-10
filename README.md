@@ -32,7 +32,7 @@ npm run check
 
 ## Firebase deployment
 
-The repository maps the Firebase project and Hosting target to `keiazotilt` in `.firebaserc` and `firebase.json`.
+The repository maps the Firebase Hosting target to `keiazotilt` in `.firebaserc` and `firebase.json`. In CI, the actual Google Cloud project ID is read from the service-account JSON so the target name does not have to match the project ID.
 
 For GitHub Actions, add this repository secret:
 

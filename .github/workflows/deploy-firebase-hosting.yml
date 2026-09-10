@@ -29,11 +29,31 @@ jobs:
           npm test
           npm run check
 
+      - name: Configure Firebase project
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEIAZOTILT }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const account = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+          if (!account.project_id) throw new Error('The Firebase service account has no project_id.');
+          const config = {
+            projects: { default: account.project_id },
+            targets: {
+              [account.project_id]: {
+                hosting: { keiazotilt: ['keiazotilt'] }
+              }
+            }
+          };
+          fs.writeFileSync('.firebaserc', `${JSON.stringify(config, null, 2)}\n`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `FIREBASE_PROJECT_ID=${account.project_id}\n`);
+          NODE
+
       - name: Deploy keiazotilt
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEIAZOTILT }}
-          projectId: keiazotilt
+          projectId: ${{ env.FIREBASE_PROJECT_ID }}
           target: keiazotilt
           channelId: live
