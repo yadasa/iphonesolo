@@ -38,7 +38,7 @@ For GitHub Actions, add this repository secret:
 
 - `FIREBASE_SERVICE_ACCOUNT_KEIAZOTILT`: the complete JSON for a Google service account allowed to deploy Firebase Hosting in project `keiazotilt`.
 
-The `Deploy Firebase Hosting` workflow validates the JavaScript and unit tests before deploying the `public/` directory to the live channel. It can also be run manually from the Actions tab.
+The `Deploy Firebase Hosting` workflow validates the JavaScript and unit tests before deploying the `public/` directory to the existing `keiazotilt` Hosting site's live channel. It can also be run manually from the Actions tab.
 
 ## Privacy
 
