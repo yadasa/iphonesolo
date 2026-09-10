@@ -1,0 +1,14 @@
+{
+  "name": "iphonesolo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes serve public",
+    "test": "node --test",
+    "check": "node --check public/assets/app.js && node --check public/assets/renderer.js && node --check public/assets/motion.js && node --check public/sw.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

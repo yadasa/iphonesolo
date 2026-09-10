@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "keiazotilt"
+  },
+  "targets": {
+    "keiazotilt": {
+      "hosting": {
+        "keiazotilt": [
+          "keiazotilt"
+        ]
+      }
+    }
+  }
+}

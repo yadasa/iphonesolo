@@ -1,0 +1,19 @@
+{
+  "name": "Keiazo Tilt",
+  "short_name": "Tilt",
+  "description": "A motion-tracked folding display illusion for your photos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050609",
+  "theme_color": "#050609",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

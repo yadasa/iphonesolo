@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+    <meta name="theme-color" content="#050609" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Turn a photo into a motion-tracked folding display illusion." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Keiazo Tilt" />
+    <link rel="manifest" href="/app.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="stylesheet" href="/assets/style.css" />
+    <title>Keiazo Tilt</title>
+  </head>
+  <body>
+    <main id="app" class="app" data-controls="open">
+      <canvas id="gl" aria-label="Motion-controlled folding image"></canvas>
+
+      <div class="ambient" aria-hidden="true"></div>
+
+      <section class="controls" aria-label="Image controls">
+        <button id="toggle-controls" class="icon-button" type="button" aria-expanded="true" aria-controls="control-panel" aria-label="Toggle image controls">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M9 17h6" /></svg>
+        </button>
+
+        <div id="control-panel" class="control-panel">
+          <label class="button primary" for="image-picker">Choose image</label>
+          <input id="image-picker" type="file" accept="image/*" hidden />
+          <button id="motion" class="button" type="button">Enable motion</button>
+          <button id="fullscreen" class="button" type="button">Fullscreen</button>
+          <button id="recalibrate" class="button quiet" type="button" hidden>Recalibrate</button>
+        </div>
+      </section>
+
+      <div id="hint" class="hint" role="status" aria-live="polite">
+        <strong>Choose a photo</strong>
+        <span>Then tilt your phone—or drag anywhere—to fold it.</span>
+      </div>
+
+      <div id="toast" class="toast" role="alert" aria-live="assertive" hidden></div>
+
+      <dialog id="install-dialog">
+        <button class="dialog-close" type="button" aria-label="Close">×</button>
+        <div class="install-mark" aria-hidden="true">↗</div>
+        <h1>Make it feel native</h1>
+        <p>In Safari, tap Share, then <strong>Add to Home Screen</strong>. Open it from your Home Screen for the cleanest full-screen experience.</p>
+        <button class="button primary dialog-done" type="button">Got it</button>
+      </dialog>
+
+      <noscript>This experience requires JavaScript.</noscript>
+    </main>
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>

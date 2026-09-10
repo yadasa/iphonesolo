@@ -1,0 +1,71 @@
+:root {
+  color: #f5f6f8;
+  background: #050609;
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+html, body, #app { width: 100%; height: 100%; margin: 0; }
+body { overflow: hidden; overscroll-behavior: none; background: #050609; }
+button, .button { font: inherit; }
+button { color: inherit; }
+
+.app { position: fixed; inset: 0; min-height: 100dvh; isolation: isolate; }
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: ew-resize; }
+.ambient { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 53%, rgba(75, 84, 107, .07), transparent 25%); mix-blend-mode: screen; }
+
+.controls {
+  position: absolute;
+  z-index: 3;
+  top: max(16px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.icon-button, .button {
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(13,15,20,.72);
+  box-shadow: inset 0 1px rgba(255,255,255,.06), 0 8px 30px rgba(0,0,0,.18);
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+}
+
+.icon-button { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; cursor: pointer; }
+.icon-button svg { width: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.control-panel { display: flex; flex-direction: column; gap: 8px; transform-origin: top left; transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.8,.2,1); }
+.button { min-height: 42px; padding: 0 17px; border-radius: 999px; display: grid; place-items: center; font-weight: 650; font-size: 14px; letter-spacing: -.01em; cursor: pointer; user-select: none; }
+.button:hover { background: rgba(34,37,45,.85); }
+.button:active { transform: scale(.975); }
+.button:disabled { opacity: .58; cursor: default; }
+.button.primary { background: #f5f6f8; color: #08090c; border-color: transparent; }
+.button.quiet { color: rgba(255,255,255,.68); }
+.app[data-controls="closed"] .control-panel { opacity: 0; transform: translateX(-10px) scale(.96); pointer-events: none; }
+
+.hint { position: absolute; z-index: 2; inset: 0; margin: auto; width: min(310px, calc(100% - 56px)); height: fit-content; text-align: center; pointer-events: none; display: grid; gap: 7px; color: rgba(255,255,255,.52); font-size: 14px; line-height: 1.45; }
+.hint strong { color: rgba(255,255,255,.9); font-size: 18px; letter-spacing: -.025em; }
+.hint[hidden] { display: none; }
+.toast { position: absolute; z-index: 10; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); max-width: 560px; margin-inline: auto; padding: 13px 16px; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; background: rgba(25,27,34,.92); box-shadow: 0 18px 60px rgba(0,0,0,.35); color: rgba(255,255,255,.9); font-size: 14px; text-align: center; }
+
+dialog { width: min(390px, calc(100% - 32px)); border: 1px solid rgba(255,255,255,.12); border-radius: 24px; padding: 28px; background: #101218; color: #f7f7f8; box-shadow: 0 30px 100px rgba(0,0,0,.7); text-align: center; }
+dialog::backdrop { background: rgba(0,0,0,.68); backdrop-filter: blur(12px); }
+dialog h1 { margin: 12px 0 8px; font-size: 24px; letter-spacing: -.04em; }
+dialog p { margin: 0 0 22px; color: rgba(255,255,255,.63); line-height: 1.55; }
+.dialog-close { position: absolute; top: 12px; right: 14px; border: 0; background: none; font-size: 25px; color: rgba(255,255,255,.48); cursor: pointer; }
+.install-mark { width: 54px; height: 54px; border-radius: 17px; margin: auto; display: grid; place-items: center; background: #f5f6f8; color: #090a0d; font-size: 25px; }
+.dialog-done { width: 100%; }
+noscript { position: absolute; inset: auto 16px 16px; z-index: 20; }
+
+@media (min-width: 700px) {
+  .controls { top: 50%; left: 50%; transform: translate(-50%, -50%); align-items: center; }
+  .icon-button { display: none; }
+  .control-panel { flex-direction: column; }
+  .hint { transform: translateY(96px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
