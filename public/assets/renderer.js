@@ -18,7 +18,7 @@ void main() {
 
   float horizontalStretch = 1.0 + amount * 1.56 * ramp;
   float x = anchorX + (a_position.x - anchorX) * horizontalStretch;
-  float verticalScale = 1.0 - amount * 0.55 * ramp;
+  float verticalScale = max(0.05, 1.0 - amount * 1.10 * ramp);
   float directionalSkew = -u_tilt * 0.26 * ramp;
   float baseY = a_position.y * u_planeHeight;
   float y = baseY * verticalScale + directionalSkew;
