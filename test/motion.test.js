@@ -15,9 +15,9 @@ test("normalizeAngle handles wraparound", () => {
 });
 
 test("tilt mapping is centered, bounded, and symmetric", () => {
-  assert.equal(tiltToFold(0).angle, 88);
-  assert.equal(tiltToFold(100).angle, 0);
-  assert.equal(tiltToFold(-100).angle, 0);
+  assert.equal(tiltToFold(0).angle, 0);
+  assert.equal(tiltToFold(100).angle, 82);
+  assert.equal(tiltToFold(-100).angle, 82);
   assert.equal(tiltToFold(-20).progress, tiltToFold(20).progress);
   assert.equal(tiltToFold(-20).direction, -1);
 });

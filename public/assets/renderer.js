@@ -8,7 +8,9 @@ out vec2 v_uv;
 out float v_light;
 
 void main() {
-  float sideMask = u_side > 0.0 ? step(0.0, a_position.x) : 1.0 - step(0.0, a_position.x);
+  float sideMask = u_side > 0.0
+    ? smoothstep(-0.12, 0.18, a_position.x)
+    : 1.0 - smoothstep(-0.18, 0.12, a_position.x);
   float hinge = 0.0;
   float localX = a_position.x - hinge;
   float signedAngle = radians(u_fold) * u_side * sideMask;
@@ -18,16 +20,19 @@ void main() {
   float z = -localX * s;
   float perspective = 1.0 / max(0.48, 1.0 - z * 0.46);
   vec2 projected = vec2(x * perspective, a_position.y * perspective);
-  projected.x /= mix(1.0, u_aspect, 0.08);
+  float aspectCorrection = mix(1.0, mix(1.0, u_aspect, 0.08), sin(abs(signedAngle)));
+  projected.x /= aspectCorrection;
   gl_Position = vec4(projected, 0.0, 1.0);
   v_uv = a_uv;
-  v_light = mix(1.0, 0.66 + 0.34 * abs(c), sideMask);
+  float hingeGlow = exp(-pow(a_position.x / 0.13, 2.0));
+  v_light = mix(1.0, 0.72 + 0.28 * abs(c), sideMask) + hingeGlow * sin(abs(signedAngle)) * 0.07;
 }`;
 
 const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 uniform sampler2D u_texture;
 uniform bool u_hasTexture;
+uniform float u_fold;
 uniform vec2 u_uvScale;
 uniform vec2 u_uvOffset;
 in vec2 v_uv;
@@ -40,8 +45,10 @@ void main() {
     return;
   }
   vec4 color = texture(u_texture, v_uv * u_uvScale + u_uvOffset);
-  float edge = 1.0 - smoothstep(0.0, 0.018, abs(v_uv.x - 0.5));
-  color.rgb *= v_light * (1.0 - edge * 0.16);
+  float hingeDistance = abs(v_uv.x - 0.5);
+  float softHinge = 1.0 - smoothstep(0.0, 0.075, hingeDistance);
+  float foldStrength = smoothstep(0.0, 15.0, u_fold);
+  color.rgb *= v_light * (1.0 - softHinge * 0.11 * foldStrength);
   outColor = color;
 }`;
 
@@ -110,12 +117,20 @@ export class FoldRenderer {
 
   setupGeometry() {
     const gl = this.gl;
-    const vertices = new Float32Array([
-      -1,-1, 0,1,   0,-1, .5,1,   -1,1, 0,0,
-      -1,1, 0,0,    0,-1, .5,1,    0,1, .5,0,
-       0,-1, .5,1,  1,-1, 1,1,     0,1, .5,0,
-       0,1, .5,0,   1,-1, 1,1,     1,1, 1,0
-    ]);
+    const segments = 64;
+    const data = [];
+    for (let index = 0; index < segments; index += 1) {
+      const x0 = -1 + (index / segments) * 2;
+      const x1 = -1 + ((index + 1) / segments) * 2;
+      const u0 = index / segments;
+      const u1 = (index + 1) / segments;
+      data.push(
+        x0, -1, u0, 1,  x1, -1, u1, 1,  x0, 1, u0, 0,
+        x0,  1, u0, 0,  x1, -1, u1, 1,  x1, 1, u1, 0
+      );
+    }
+    const vertices = new Float32Array(data);
+    this.vertexCount = segments * 6;
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
@@ -223,7 +238,7 @@ export class FoldRenderer {
     else scaleY = mediaAspect / viewportAspect;
     gl.uniform2f(this.locations.uvScale, scaleX, scaleY);
     gl.uniform2f(this.locations.uvOffset, (1 - scaleX) / 2, (1 - scaleY) / 2);
-    gl.drawArrays(gl.TRIANGLES, 0, 12);
+    gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
     this.lastFold = fold;
     this.lastSide = this.side;
     this.dirty = false;

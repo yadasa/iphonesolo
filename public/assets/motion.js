@@ -16,7 +16,7 @@ export function tiltToFold(tilt, { deadZone = 1.25, maxTilt = 47 } = {}) {
   return {
     direction: tilt < 0 ? -1 : 1,
     progress: curved,
-    angle: 88 * (1 - curved)
+    angle: 82 * curved
   };
 }
 
