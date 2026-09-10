@@ -4,6 +4,9 @@ in vec2 a_uv;
 uniform float u_tilt;
 uniform float u_aspect;
 uniform float u_planeHeight;
+uniform float u_horizontalStretch;
+uniform float u_verticalCompression;
+uniform float u_perspectiveSkew;
 out vec2 v_uv;
 
 void main() {
@@ -16,10 +19,10 @@ void main() {
     : (1.0 - a_position.x) * 0.5;
   float ramp = smoothstep(0.0, 1.0, distanceFromAnchor);
 
-  float horizontalStretch = 1.0 + amount * 1.56 * ramp;
+  float horizontalStretch = 1.0 + amount * u_horizontalStretch * ramp;
   float x = anchorX + (a_position.x - anchorX) * horizontalStretch;
-  float verticalScale = max(0.05, 1.0 - amount * 1.10 * ramp);
-  float directionalSkew = -u_tilt * 0.26 * ramp;
+  float verticalScale = max(0.05, 1.0 - amount * u_verticalCompression * ramp);
+  float directionalSkew = -u_tilt * u_perspectiveSkew * ramp;
   float baseY = a_position.y * u_planeHeight;
   float y = baseY * verticalScale + directionalSkew;
   vec2 projected = vec2(x, y);
@@ -35,6 +38,10 @@ uniform float u_tilt;
 uniform vec2 u_uvScale;
 uniform vec2 u_uvOffset;
 uniform vec2 u_texelSize;
+uniform float u_darknessGradient;
+uniform float u_blurStrength;
+uniform float u_blurSize;
+uniform float u_blurFalloff;
 in vec2 v_uv;
 out vec4 outColor;
 
@@ -46,26 +53,38 @@ void main() {
   vec2 uv = v_uv * u_uvScale + u_uvOffset;
   float amount = abs(u_tilt);
   float distanceFromAnchor = u_tilt < 0.0 ? v_uv.x : 1.0 - v_uv.x;
-  float blurGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), 1.35);
-  float blurRadius = smoothstep(0.04, 1.0, amount) * blurGradient * 36.0;
+  float blurGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), u_blurFalloff);
+  float blurRadius = smoothstep(0.04, 1.0, amount) * blurGradient * u_blurSize;
   vec2 blurStep = u_texelSize * blurRadius * normalize(vec2(1.0, u_tilt * 0.18));
 
-  vec4 color = texture(u_texture, uv) * 0.20;
-  color += texture(u_texture, uv - blurStep * 0.75) * 0.16;
-  color += texture(u_texture, uv + blurStep * 0.75) * 0.16;
-  color += texture(u_texture, uv - blurStep * 1.5) * 0.13;
-  color += texture(u_texture, uv + blurStep * 1.5) * 0.13;
-  color += texture(u_texture, uv - blurStep * 2.4) * 0.08;
-  color += texture(u_texture, uv + blurStep * 2.4) * 0.08;
-  color += texture(u_texture, uv - blurStep * 3.3) * 0.03;
-  color += texture(u_texture, uv + blurStep * 3.3) * 0.03;
+  vec4 sharp = texture(u_texture, uv);
+  vec4 blurred = sharp * 0.20;
+  blurred += texture(u_texture, uv - blurStep * 0.75) * 0.16;
+  blurred += texture(u_texture, uv + blurStep * 0.75) * 0.16;
+  blurred += texture(u_texture, uv - blurStep * 1.5) * 0.13;
+  blurred += texture(u_texture, uv + blurStep * 1.5) * 0.13;
+  blurred += texture(u_texture, uv - blurStep * 2.4) * 0.08;
+  blurred += texture(u_texture, uv + blurStep * 2.4) * 0.08;
+  blurred += texture(u_texture, uv - blurStep * 3.3) * 0.03;
+  blurred += texture(u_texture, uv + blurStep * 3.3) * 0.03;
+  vec4 color = mix(sharp, blurred, clamp(u_blurStrength, 0.0, 1.0));
 
   float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), 0.72);
   float tiltShadow = smoothstep(0.12, 0.82, amount);
-  float depthShade = tiltShadow * shadowGradient * 2.36;
+  float depthShade = tiltShadow * shadowGradient * u_darknessGradient;
   color.rgb *= max(0.0, 1.0 - depthShade);
   outColor = color;
 }`;
+
+export const DEFAULT_RENDER_SETTINGS = Object.freeze({
+  horizontalStretch: 1.56,
+  perspectiveSkew: 0.26,
+  verticalCompression: 1.10,
+  darknessGradient: 2.36,
+  gaussianBlurStrength: 1,
+  gaussianBlurSize: 36,
+  gaussianBlurFalloff: 1.35
+});
 
 function compile(gl, type, source) {
   const shader = gl.createShader(type);
@@ -95,6 +114,7 @@ export class FoldRenderer {
     this.side = 1;
     this.lastFold = Number.NaN;
     this.lastSide = Number.NaN;
+    this.settings = { ...DEFAULT_RENDER_SETTINGS };
     this.dirty = true;
     this.setupGeometry();
     this.resize();
@@ -124,11 +144,23 @@ export class FoldRenderer {
       tilt: uniform("u_tilt"),
       aspect: uniform("u_aspect"),
       planeHeight: uniform("u_planeHeight"),
+      horizontalStretch: uniform("u_horizontalStretch"),
+      verticalCompression: uniform("u_verticalCompression"),
+      perspectiveSkew: uniform("u_perspectiveSkew"),
       hasTexture: uniform("u_hasTexture"),
       uvScale: uniform("u_uvScale"),
       uvOffset: uniform("u_uvOffset"),
-      texelSize: uniform("u_texelSize")
+      texelSize: uniform("u_texelSize"),
+      darknessGradient: uniform("u_darknessGradient"),
+      blurStrength: uniform("u_blurStrength"),
+      blurSize: uniform("u_blurSize"),
+      blurFalloff: uniform("u_blurFalloff")
     };
+  }
+
+  setSettings(settings) {
+    this.settings = { ...this.settings, ...settings };
+    this.dirty = true;
   }
 
   setupGeometry() {
@@ -238,6 +270,13 @@ export class FoldRenderer {
     gl.useProgram(this.program);
     gl.uniform1f(this.locations.tilt, signedTilt);
     gl.uniform1f(this.locations.aspect, this.canvas.width / this.canvas.height);
+    gl.uniform1f(this.locations.horizontalStretch, this.settings.horizontalStretch);
+    gl.uniform1f(this.locations.verticalCompression, this.settings.verticalCompression);
+    gl.uniform1f(this.locations.perspectiveSkew, this.settings.perspectiveSkew);
+    gl.uniform1f(this.locations.darknessGradient, this.settings.darknessGradient);
+    gl.uniform1f(this.locations.blurStrength, this.settings.gaussianBlurStrength);
+    gl.uniform1f(this.locations.blurSize, this.settings.gaussianBlurSize);
+    gl.uniform1f(this.locations.blurFalloff, this.settings.gaussianBlurFalloff);
     gl.uniform1i(this.locations.hasTexture, this.hasTexture);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);

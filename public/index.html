@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
     <meta name="theme-color" content="#050609" />
     <meta name="color-scheme" content="dark" />
-    <meta name="description" content="Turn a photo or video into a motion-tracked folding display illusion." />
+    <meta name="description" content="Turn a photo or video into a motion-tracked perspective illusion." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Keiazo Tilt" />
@@ -17,7 +17,7 @@
   </head>
   <body>
     <main id="app" class="app" data-controls="open">
-      <canvas id="gl" aria-label="Motion-controlled folding image"></canvas>
+      <canvas id="gl" aria-label="Motion-controlled perspective image"></canvas>
 
       <div class="ambient" aria-hidden="true"></div>
 
@@ -35,17 +35,83 @@
         </div>
       </section>
 
+      <section class="tuning" aria-label="Effect settings">
+        <button id="tuning-toggle" class="icon-button tuning-toggle" type="button" aria-expanded="false" aria-controls="tuning-panel" aria-label="Open effect settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 12h2M10 12h10M4 17h7M15 17h5" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="12" r="2" /><circle cx="13" cy="17" r="2" /></svg>
+        </button>
+
+        <aside id="tuning-panel" class="tuning-panel" aria-hidden="true" inert>
+          <header class="tuning-header">
+            <div>
+              <span class="eyebrow">Live renderer</span>
+              <h2>Effect settings</h2>
+            </div>
+            <button id="tuning-close" class="panel-close" type="button" aria-label="Close effect settings">×</button>
+          </header>
+
+          <div class="history-controls" aria-label="Settings history">
+            <button id="settings-undo" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5M5 12h8a6 6 0 0 1 6 6" /></svg>
+              Undo
+            </button>
+            <button id="settings-redo" type="button" disabled>
+              Redo
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7 5 5-5 5M19 12h-8a6 6 0 0 0-6 6" /></svg>
+            </button>
+          </div>
+
+          <div class="parameter-list">
+            <label class="parameter">
+              <span><b>Horizontal stretch</b><output data-output="horizontalStretch">1.56</output></span>
+              <input data-setting="horizontalStretch" type="range" min="0" max="4" step="0.01" value="1.56" />
+            </label>
+            <label class="parameter">
+              <span><b>Perspective skew</b><output data-output="perspectiveSkew">0.26</output></span>
+              <input data-setting="perspectiveSkew" type="range" min="-1" max="1" step="0.01" value="0.26" />
+            </label>
+            <label class="parameter">
+              <span><b>Vertical compression</b><output data-output="verticalCompression">1.10</output></span>
+              <input data-setting="verticalCompression" type="range" min="0" max="2" step="0.01" value="1.10" />
+            </label>
+            <label class="parameter">
+              <span><b>Darkness gradient</b><output data-output="darknessGradient">2.36</output></span>
+              <input data-setting="darknessGradient" type="range" min="0" max="5" step="0.01" value="2.36" />
+            </label>
+            <label class="parameter">
+              <span><b>Gaussian blur strength</b><output data-output="gaussianBlurStrength">100%</output></span>
+              <input data-setting="gaussianBlurStrength" data-format="percent" type="range" min="0" max="1" step="0.01" value="1" />
+            </label>
+            <label class="parameter">
+              <span><b>Gaussian blur size</b><output data-output="gaussianBlurSize">36 px</output></span>
+              <input data-setting="gaussianBlurSize" data-format="pixels" type="range" min="0" max="100" step="1" value="36" />
+            </label>
+            <label class="parameter">
+              <span><b>Blur falloff</b><output data-output="gaussianBlurFalloff">1.35</output></span>
+              <input data-setting="gaussianBlurFalloff" type="range" min="0.2" max="4" step="0.01" value="1.35" />
+            </label>
+          </div>
+
+          <div class="json-controls">
+            <button id="show-settings" class="button primary" type="button" aria-expanded="false" aria-controls="settings-json-wrap">Show settings JSON</button>
+            <div id="settings-json-wrap" class="settings-json-wrap" hidden>
+              <pre id="settings-json" tabindex="0"></pre>
+              <button id="copy-settings" class="button" type="button">Copy JSON</button>
+            </div>
+          </div>
+        </aside>
+      </section>
+
       <div id="hint" class="hint" role="status" aria-live="polite">
         <strong>Choose a photo or video</strong>
-        <span>Then tilt your phone—or drag anywhere—to fold it.</span>
+        <span>Then tilt your phone—or drag anywhere—to shift its perspective.</span>
       </div>
 
       <div id="toast" class="toast" role="alert" aria-live="assertive" hidden></div>
 
       <dialog id="motion-dialog">
         <div class="motion-mark" aria-hidden="true">↔</div>
-        <h1>Move your phone. Bend the screen.</h1>
-        <p>Keiazo Tilt uses your phone’s motion sensor to make your photo or video feel like it lives on a folding display. Your motion data stays on this device.</p>
+        <h1>Move your phone. Shift the view.</h1>
+        <p>Keiazo Tilt uses your phone’s motion sensor to give your photo or video a responsive perspective effect. Your motion data stays on this device.</p>
         <button class="button primary motion-continue" type="button">Enable device tilt</button>
         <button class="text-button motion-skip" type="button">Continue without motion</button>
       </dialog>

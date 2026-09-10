@@ -26,6 +26,59 @@ button { color: inherit; }
   gap: 9px;
 }
 
+.tuning { position: absolute; z-index: 5; top: 0; right: 0; pointer-events: none; }
+.tuning-toggle {
+  position: fixed;
+  z-index: 2;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  pointer-events: auto;
+  transition: opacity 160ms ease, transform 220ms cubic-bezier(.2,.8,.2,1);
+}
+.tuning-toggle svg circle { fill: #0d0f14; stroke: currentColor; }
+.app[data-tuning="open"] .tuning-toggle { opacity: 0; transform: scale(.88); pointer-events: none; }
+.tuning-panel {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  width: min(360px, calc(100vw - 24px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 24px;
+  background: rgba(12,14,19,.91);
+  box-shadow: 0 26px 90px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.06);
+  backdrop-filter: blur(28px) saturate(135%);
+  -webkit-backdrop-filter: blur(28px) saturate(135%);
+  pointer-events: auto;
+  transform: translateX(calc(100% + 24px));
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 180ms ease, transform 260ms cubic-bezier(.2,.8,.2,1), visibility 0s linear 260ms;
+}
+.app[data-tuning="open"] .tuning-panel { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }
+.tuning-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow { display: block; margin-bottom: 3px; color: rgba(255,255,255,.43); font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.tuning-header h2 { margin: 0; font-size: 22px; letter-spacing: -.035em; }
+.panel-close { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(255,255,255,.06); color: rgba(255,255,255,.7); font-size: 23px; line-height: 1; cursor: pointer; }
+.history-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 18px 0 20px; }
+.history-controls button { min-height: 38px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(255,255,255,.11); border-radius: 12px; background: rgba(255,255,255,.055); font-size: 14px; font-weight: 650; cursor: pointer; }
+.history-controls button:disabled { opacity: .3; cursor: default; }
+.history-controls svg { width: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.parameter-list { display: grid; gap: 18px; }
+.parameter { display: grid; gap: 10px; }
+.parameter > span { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; font-size: 14px; }
+.parameter b { font-weight: 600; }
+.parameter output { color: rgba(255,255,255,.55); font-variant-numeric: tabular-nums; }
+.parameter input[type="range"] { width: 100%; height: 22px; margin: 0; accent-color: #f5f6f8; cursor: ew-resize; }
+.json-controls { margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.1); }
+.json-controls > .button { width: 100%; }
+.settings-json-wrap { margin-top: 10px; }
+.settings-json-wrap[hidden] { display: none; }
+.settings-json-wrap pre { max-height: 230px; overflow: auto; margin: 0 0 10px; padding: 14px; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; background: rgba(0,0,0,.32); color: rgba(255,255,255,.72); font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; user-select: text; -webkit-user-select: text; }
+
 .icon-button, .button {
   border: 1px solid rgba(255,255,255,.15);
   background: rgba(13,15,20,.72);
@@ -66,6 +119,12 @@ noscript { position: absolute; inset: auto 16px 16px; z-index: 20; }
   .icon-button { display: none; }
   .control-panel { flex-direction: column; }
   .hint { transform: translateY(96px); }
+}
+
+@media (max-height: 620px) {
+  .tuning-panel { border-radius: 18px; padding: 16px; }
+  .parameter-list { gap: 13px; }
+  .history-controls { margin: 12px 0 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

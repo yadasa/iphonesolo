@@ -1,5 +1,5 @@
 import { MotionTracker, clamp, smooth, tiltToFold } from "./motion.js";
-import { FoldRenderer } from "./renderer.js";
+import { DEFAULT_RENDER_SETTINGS, FoldRenderer } from "./renderer.js";
 
 const app = document.querySelector("#app");
 const canvas = document.querySelector("#gl");
@@ -13,6 +13,16 @@ const hint = document.querySelector("#hint");
 const toast = document.querySelector("#toast");
 const installDialog = document.querySelector("#install-dialog");
 const motionDialog = document.querySelector("#motion-dialog");
+const tuningToggle = document.querySelector("#tuning-toggle");
+const tuningClose = document.querySelector("#tuning-close");
+const tuningPanel = document.querySelector("#tuning-panel");
+const settingInputs = [...document.querySelectorAll("[data-setting]")];
+const undoButton = document.querySelector("#settings-undo");
+const redoButton = document.querySelector("#settings-redo");
+const showSettingsButton = document.querySelector("#show-settings");
+const settingsJsonWrap = document.querySelector("#settings-json-wrap");
+const settingsJson = document.querySelector("#settings-json");
+const copySettingsButton = document.querySelector("#copy-settings");
 
 let renderer;
 let imageUrl;
@@ -28,6 +38,10 @@ let activeVideo;
 let mediaReady = false;
 let hasInteracted = false;
 let installPromptScheduled = false;
+let renderSettings = { ...DEFAULT_RENDER_SETTINGS };
+let editStart = null;
+const undoStack = [];
+const redoStack = [];
 
 const tracker = new MotionTracker(value => { targetTilt = value; });
 
@@ -36,6 +50,58 @@ function showToast(message) {
   toast.textContent = message;
   toast.hidden = false;
   toastTimer = setTimeout(() => { toast.hidden = true; }, 4400);
+}
+
+function settingsSnapshot() {
+  return { ...renderSettings };
+}
+
+function settingsEqual(left, right) {
+  return Object.keys(DEFAULT_RENDER_SETTINGS).every(key => left[key] === right[key]);
+}
+
+function formatSetting(input, value) {
+  if (input.dataset.format === "percent") return `${Math.round(value * 100)}%`;
+  if (input.dataset.format === "pixels") return `${Math.round(value)} px`;
+  return Number(value).toFixed(2);
+}
+
+function settingsPayload() {
+  return JSON.stringify({ version: 1, settings: renderSettings }, null, 2);
+}
+
+function updateHistoryControls() {
+  undoButton.disabled = undoStack.length === 0;
+  redoButton.disabled = redoStack.length === 0;
+}
+
+function refreshSettingsUi() {
+  for (const input of settingInputs) {
+    const value = renderSettings[input.dataset.setting];
+    input.value = String(value);
+    document.querySelector(`[data-output="${input.dataset.setting}"]`).textContent = formatSetting(input, value);
+  }
+  renderer?.setSettings(renderSettings);
+  if (!settingsJsonWrap.hidden) settingsJson.textContent = settingsPayload();
+  updateHistoryControls();
+}
+
+function commitSettingsEdit() {
+  if (!editStart) return;
+  if (!settingsEqual(editStart, renderSettings)) {
+    undoStack.push(editStart);
+    redoStack.length = 0;
+  }
+  editStart = null;
+  updateHistoryControls();
+}
+
+function openTuningPanel(open) {
+  app.dataset.tuning = open ? "open" : "closed";
+  tuningToggle.setAttribute("aria-expanded", String(open));
+  tuningToggle.setAttribute("aria-label", open ? "Close effect settings" : "Open effect settings");
+  tuningPanel.setAttribute("aria-hidden", String(!open));
+  tuningPanel.inert = !open;
 }
 
 function renderFrame(now) {
@@ -115,6 +181,58 @@ toggle.addEventListener("click", () => {
   app.dataset.controls = open ? "closed" : "open";
   toggle.setAttribute("aria-expanded", String(!open));
   panel.inert = open;
+});
+
+tuningToggle.addEventListener("click", () => openTuningPanel(app.dataset.tuning !== "open"));
+tuningClose.addEventListener("click", () => openTuningPanel(false));
+
+for (const input of settingInputs) {
+  const beginEdit = () => { if (!editStart) editStart = settingsSnapshot(); };
+  input.addEventListener("pointerdown", beginEdit);
+  input.addEventListener("focus", beginEdit);
+  input.addEventListener("input", () => {
+    beginEdit();
+    renderSettings[input.dataset.setting] = Number(input.value);
+    refreshSettingsUi();
+  });
+  input.addEventListener("change", commitSettingsEdit);
+  input.addEventListener("blur", commitSettingsEdit);
+}
+
+undoButton.addEventListener("click", () => {
+  commitSettingsEdit();
+  const previous = undoStack.pop();
+  if (!previous) return;
+  redoStack.push(settingsSnapshot());
+  renderSettings = previous;
+  refreshSettingsUi();
+});
+
+redoButton.addEventListener("click", () => {
+  commitSettingsEdit();
+  const next = redoStack.pop();
+  if (!next) return;
+  undoStack.push(settingsSnapshot());
+  renderSettings = next;
+  refreshSettingsUi();
+});
+
+showSettingsButton.addEventListener("click", () => {
+  const show = settingsJsonWrap.hidden;
+  settingsJsonWrap.hidden = !show;
+  showSettingsButton.textContent = show ? "Hide settings JSON" : "Show settings JSON";
+  showSettingsButton.setAttribute("aria-expanded", String(show));
+  if (show) settingsJson.textContent = settingsPayload();
+});
+
+copySettingsButton.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(settingsPayload());
+    showToast("Settings JSON copied.");
+  } catch {
+    settingsJson.focus();
+    showToast("Press and hold the JSON to copy it.");
+  }
 });
 
 picker.addEventListener("change", event => loadFile(event.target.files?.[0]));
@@ -232,6 +350,8 @@ function maybeShowInstallHelp() {
 
 try {
   renderer = new FoldRenderer(canvas);
+  renderer.setSettings(renderSettings);
+  refreshSettingsUi();
   startRendering();
   setTimeout(() => motionDialog.showModal(), 350);
 } catch (error) {
