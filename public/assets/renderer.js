@@ -61,14 +61,26 @@ export class FoldRenderer {
     this.gl = canvas.getContext("webgl2", { alpha: false, antialias: true, powerPreference: "high-performance" });
     if (!this.gl) throw new Error("This experience needs WebGL 2.");
     this.program = this.createProgram();
+    this.locations = this.cacheLocations();
     this.texture = this.gl.createTexture();
     this.hasTexture = false;
     this.video = null;
+    this.videoFrameReady = false;
+    this.videoFrameHandle = null;
+    this.lastVideoTime = -1;
     this.mediaWidth = 1;
     this.mediaHeight = 1;
     this.side = 1;
+    this.lastFold = Number.NaN;
+    this.lastSide = Number.NaN;
+    this.dirty = true;
     this.setupGeometry();
     this.resize();
+    this.resizeObserver = new ResizeObserver(() => {
+      this.resize();
+      this.dirty = true;
+    });
+    this.resizeObserver.observe(canvas);
   }
 
   createProgram() {
@@ -79,6 +91,21 @@ export class FoldRenderer {
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) || "Shader linking failed.");
     return program;
+  }
+
+  cacheLocations() {
+    const gl = this.gl;
+    const uniform = name => gl.getUniformLocation(this.program, name);
+    return {
+      position: gl.getAttribLocation(this.program, "a_position"),
+      uv: gl.getAttribLocation(this.program, "a_uv"),
+      fold: uniform("u_fold"),
+      side: uniform("u_side"),
+      aspect: uniform("u_aspect"),
+      hasTexture: uniform("u_hasTexture"),
+      uvScale: uniform("u_uvScale"),
+      uvOffset: uniform("u_uvOffset")
+    };
   }
 
   setupGeometry() {
@@ -93,8 +120,7 @@ export class FoldRenderer {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
     gl.useProgram(this.program);
-    const position = gl.getAttribLocation(this.program, "a_position");
-    const uv = gl.getAttribLocation(this.program, "a_uv");
+    const { position, uv } = this.locations;
     gl.enableVertexAttribArray(position);
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 16, 0);
     gl.enableVertexAttribArray(uv);
@@ -108,12 +134,30 @@ export class FoldRenderer {
     if (this.canvas.width !== width || this.canvas.height !== height) {
       this.canvas.width = width;
       this.canvas.height = height;
+      this.dirty = true;
     }
     this.gl.viewport(0, 0, width, height);
   }
 
+  stopVideoFrameTracking() {
+    if (this.video && this.videoFrameHandle != null && "cancelVideoFrameCallback" in this.video) {
+      this.video.cancelVideoFrameCallback(this.videoFrameHandle);
+    }
+    this.videoFrameHandle = null;
+  }
+
+  trackVideoFrames(video) {
+    if (!("requestVideoFrameCallback" in video)) return;
+    const markFrame = () => {
+      this.videoFrameReady = true;
+      this.videoFrameHandle = video.requestVideoFrameCallback(markFrame);
+    };
+    this.videoFrameHandle = video.requestVideoFrameCallback(markFrame);
+  }
+
   setImage(image) {
     const gl = this.gl;
+    this.stopVideoFrameTracking();
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -125,10 +169,12 @@ export class FoldRenderer {
     this.mediaWidth = image.naturalWidth;
     this.mediaHeight = image.naturalHeight;
     this.hasTexture = true;
+    this.dirty = true;
   }
 
   setVideo(video) {
     const gl = this.gl;
+    this.stopVideoFrameTracking();
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -140,23 +186,34 @@ export class FoldRenderer {
     this.mediaWidth = video.videoWidth;
     this.mediaHeight = video.videoHeight;
     this.hasTexture = true;
+    this.videoFrameReady = true;
+    this.lastVideoTime = -1;
+    this.trackVideoFrames(video);
+    this.dirty = true;
   }
 
   render(fold, side = this.side) {
     const gl = this.gl;
-    this.resize();
     this.side = side || 1;
+    const supportsFrameCallback = this.video && "requestVideoFrameCallback" in this.video;
+    const fallbackVideoFrame = this.video && !supportsFrameCallback && this.video.currentTime !== this.lastVideoTime;
+    const hasFreshVideoFrame = Boolean(this.video && (this.videoFrameReady || fallbackVideoFrame));
+    const transformChanged = Math.abs(fold - this.lastFold) > 0.025 || this.side !== this.lastSide;
+    if (!this.dirty && !transformChanged && !hasFreshVideoFrame) return false;
+
     gl.clearColor(0.012, 0.014, 0.02, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(this.program);
-    gl.uniform1f(gl.getUniformLocation(this.program, "u_fold"), fold);
-    gl.uniform1f(gl.getUniformLocation(this.program, "u_side"), this.side);
-    gl.uniform1f(gl.getUniformLocation(this.program, "u_aspect"), this.canvas.width / this.canvas.height);
-    gl.uniform1i(gl.getUniformLocation(this.program, "u_hasTexture"), this.hasTexture);
+    gl.uniform1f(this.locations.fold, fold);
+    gl.uniform1f(this.locations.side, this.side);
+    gl.uniform1f(this.locations.aspect, this.canvas.width / this.canvas.height);
+    gl.uniform1i(this.locations.hasTexture, this.hasTexture);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    if (this.video && this.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.video);
+    if (hasFreshVideoFrame && this.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.video);
+      this.videoFrameReady = false;
+      this.lastVideoTime = this.video.currentTime;
     }
     const viewportAspect = this.canvas.width / this.canvas.height;
     const mediaAspect = this.mediaWidth / this.mediaHeight;
@@ -164,8 +221,12 @@ export class FoldRenderer {
     let scaleY = 1;
     if (mediaAspect > viewportAspect) scaleX = viewportAspect / mediaAspect;
     else scaleY = mediaAspect / viewportAspect;
-    gl.uniform2f(gl.getUniformLocation(this.program, "u_uvScale"), scaleX, scaleY);
-    gl.uniform2f(gl.getUniformLocation(this.program, "u_uvOffset"), (1 - scaleX) / 2, (1 - scaleY) / 2);
+    gl.uniform2f(this.locations.uvScale, scaleX, scaleY);
+    gl.uniform2f(this.locations.uvOffset, (1 - scaleX) / 2, (1 - scaleY) / 2);
     gl.drawArrays(gl.TRIANGLES, 0, 12);
+    this.lastFold = fold;
+    this.lastSide = this.side;
+    this.dirty = false;
+    return true;
   }
 }

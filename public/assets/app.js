@@ -19,6 +19,7 @@ let imageUrl;
 let targetTilt = 0;
 let renderedTilt = 0;
 let previousTime = performance.now();
+let animationFrameId;
 let dragging = false;
 let pointerStart = 0;
 let tiltStart = 0;
@@ -45,7 +46,19 @@ function renderFrame(now) {
   renderer?.render(fold.angle, fold.direction);
   if (Math.abs(renderedTilt) > 5) hasInteracted = true;
   if (mediaReady && hasInteracted) maybeShowInstallHelp();
-  requestAnimationFrame(renderFrame);
+  animationFrameId = requestAnimationFrame(renderFrame);
+}
+
+function startRendering() {
+  if (animationFrameId != null) return;
+  previousTime = performance.now();
+  animationFrameId = requestAnimationFrame(renderFrame);
+}
+
+function stopRendering() {
+  if (animationFrameId == null) return;
+  cancelAnimationFrame(animationFrameId);
+  animationFrameId = null;
 }
 
 async function loadFile(file) {
@@ -185,7 +198,14 @@ canvas.addEventListener("pointerup", event => {
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && tracker.listening) tracker.recalibrate();
+  if (document.hidden) {
+    stopRendering();
+    activeVideo?.pause();
+    return;
+  }
+  if (tracker.listening) tracker.recalibrate();
+  activeVideo?.play().catch(() => {});
+  startRendering();
 });
 
 window.addEventListener("orientationchange", () => tracker.recalibrate(), { passive: true });
@@ -212,7 +232,7 @@ function maybeShowInstallHelp() {
 
 try {
   renderer = new FoldRenderer(canvas);
-  requestAnimationFrame(renderFrame);
+  startRendering();
   setTimeout(() => motionDialog.showModal(), 350);
 } catch (error) {
   showToast(error.message);

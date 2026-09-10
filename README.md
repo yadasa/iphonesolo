@@ -6,6 +6,7 @@ A clean-room, mobile-first reconstruction of the interaction behind Solo: choose
 
 - WebGL 2 renderer with a two-panel hinge, perspective, seam shading, cover cropping, and capped device-pixel ratio
 - Frame-synchronized local video textures with inline, muted looping playback
+- Render-loop optimizations: cached GPU locations, resize observation, new-frame-only video uploads, idle draw skipping, and background suspension
 - Guided iOS motion-permission flow, orientation compensation, calibration, dead zone, smoothing, and angle wraparound handling
 - Pointer-drag fallback for desktop testing
 - Local-only image decoding through an ephemeral object URL; selected photos are never uploaded or persisted
