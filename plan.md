@@ -21,10 +21,10 @@ This checklist captures the requested migration and customization work for the c
 - [x] Replace the home-screen wallpaper with the supplied dark geometric wallpaper while preserving the phone-screen aspect ratio and cover behavior.
 
 ## Liquid Glass UI
-- [ ] Port the Garden/church frosted-glass treatment as the visual reference: ~22px backdrop blur, 145% saturation, translucent white border, inset highlight, layered soft shadow.
-- [ ] Apply the treatment to the initial Enable Motion card without changing its layout/aspect ratio.
-- [ ] Apply the same visual language to Settings, fullscreen/help dialogs, QR/popover cards, alerts, and similar popup surfaces.
-- [ ] Preserve reduced-transparency and increased-contrast accessibility fallbacks.
+- [x] Port the Garden/church frosted-glass treatment as the visual reference: ~22px backdrop blur, 145% saturation, translucent white border, inset highlight, layered soft shadow.
+- [x] Apply the treatment to the initial Enable Motion card without changing its layout/aspect ratio.
+- [x] Apply the same visual language to Settings, fullscreen/help dialogs, QR/popover cards, alerts, and similar popup surfaces.
+- [x] Preserve reduced-transparency and increased-contrast accessibility fallbacks.
 
 ## Video upload reliability
 - [ ] Allow the existing media picker to select images and videos.

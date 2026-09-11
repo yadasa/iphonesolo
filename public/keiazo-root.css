@@ -1,0 +1,114 @@
+:root {
+  --keiazo-glass-blur: 22px;
+  --keiazo-glass-saturation: 145%;
+  --keiazo-glass-fill: rgba(19, 24, 34, 0.52);
+  --keiazo-glass-fill-strong: rgba(18, 23, 32, 0.68);
+  --keiazo-glass-border: rgba(255, 255, 255, 0.34);
+  --keiazo-glass-highlight: rgba(255, 255, 255, 0.34);
+  --keiazo-glass-shadow: 0 20px 60px rgba(0, 0, 0, 0.34),
+    0 4px 18px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 var(--keiazo-glass-highlight);
+}
+
+/* Garden-inspired Liquid Glass surfaces. These selectors intentionally change
+   paint only: the generated Svelte component keeps ownership of every size,
+   margin and aspect-ratio decision. */
+dialog,
+.qr-card,
+.error,
+.credit,
+.qr-button,
+.pick,
+.settings-heading button,
+.settings-content button {
+  -webkit-backdrop-filter: blur(var(--keiazo-glass-blur))
+    saturate(var(--keiazo-glass-saturation));
+  backdrop-filter: blur(var(--keiazo-glass-blur))
+    saturate(var(--keiazo-glass-saturation));
+  border: 1px solid var(--keiazo-glass-border) !important;
+  box-shadow: var(--keiazo-glass-shadow);
+}
+
+dialog {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.045) 34%, rgba(255, 255, 255, 0.015) 64%),
+    radial-gradient(circle at 18% 0%, rgba(178, 205, 255, 0.13), transparent 48%),
+    var(--keiazo-glass-fill);
+}
+
+#motion-permission {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.055) 34%, rgba(255, 255, 255, 0.018) 68%),
+    radial-gradient(circle at 22% 0%, rgba(191, 215, 255, 0.16), transparent 52%),
+    rgba(16, 21, 30, 0.46);
+}
+
+dialog::backdrop {
+  -webkit-backdrop-filter: blur(10px) saturate(118%);
+  backdrop-filter: blur(10px) saturate(118%);
+  background: rgba(2, 4, 8, 0.48);
+}
+
+.qr-card,
+.error {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.045) 55%),
+    var(--keiazo-glass-fill-strong);
+}
+
+.qr-card span,
+.qr-placeholder {
+  color: rgba(255, 255, 255, 0.76) !important;
+}
+
+.credit,
+.qr-button,
+.pick,
+.settings-heading button,
+.settings-content button {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.035)),
+    rgba(20, 25, 34, 0.5);
+}
+
+dialog > button,
+dialog form > button {
+  color: #fff;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  dialog,
+  .qr-card,
+  .error,
+  .credit,
+  .qr-button,
+  .pick,
+  .settings-heading button,
+  .settings-content button {
+    background: rgba(18, 23, 32, 0.96);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  dialog,
+  .qr-card,
+  .error,
+  .credit,
+  .qr-button,
+  .pick,
+  .settings-heading button,
+  .settings-content button {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: #171c25;
+  }
+}
+
+@media (prefers-contrast: more) {
+  dialog,
+  .qr-card,
+  .error {
+    background: #111722;
+    border-color: rgba(255, 255, 255, 0.76) !important;
+  }
+}
