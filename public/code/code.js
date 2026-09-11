@@ -8,6 +8,8 @@ const donateButton = document.querySelector("#donate-button");
 const statusMessage = document.querySelector("#payment-status");
 const presetButtons = [...document.querySelectorAll("[data-amount]")];
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 function showError(message = "") {
   errorMessage.textContent = message;
   errorMessage.hidden = !message;
@@ -26,6 +28,10 @@ function selectPreset(value) {
     );
   }
 }
+
+// Pre-warm the lightweight health endpoint so the first donor is less likely to
+// hit a cold function. Failure is intentionally silent; submit still reports it.
+fetch("/api/code-health", { cache: "no-store" }).catch(() => {});
 
 openButton.addEventListener("click", () => {
   showError();
@@ -92,6 +98,27 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
+async function verifyPaidSession(sessionId) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    try {
+      const response = await fetch(
+        `/api/code-verify?session_id=${encodeURIComponent(sessionId)}`,
+        { headers: { Accept: "application/json" }, cache: "no-store" },
+      );
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.paid && data.downloadUrl) return data;
+    } catch {
+      // Short-lived network/cold-start failures are retried below.
+    }
+
+    if (attempt < 9) {
+      setStatus("Payment received — preparing your download…");
+      await wait(Math.min(750 + attempt * 500, 3000));
+    }
+  }
+  return null;
+}
+
 async function resumeAfterCheckout() {
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get("session_id");
@@ -103,27 +130,16 @@ async function resumeAfterCheckout() {
   if (!sessionId) return;
 
   setStatus("Confirming your donation…");
-  try {
-    const response = await fetch(
-      `/api/code-verify?session_id=${encodeURIComponent(sessionId)}`,
-      { headers: { Accept: "application/json" } },
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.paid || !data.downloadUrl) {
-      setStatus("We could not confirm the payment yet. Refresh this page to retry.");
-      return;
-    }
-    setStatus("Payment received — your code download is starting now.");
-    history.replaceState({}, "", "/code");
-    const link = document.createElement("a");
-    link.href = data.downloadUrl;
-    link.style.display = "none";
-    document.body.append(link);
-    link.click();
-    setTimeout(() => link.remove(), 1500);
-  } catch {
-    setStatus("We could not confirm the payment yet. Refresh this page to retry.");
+  const data = await verifyPaidSession(sessionId);
+  if (!data) {
+    setStatus("Your payment is still being confirmed. Refreshing will retry automatically.");
+    return;
   }
+
+  setStatus("Payment received — your code download is starting now.");
+  history.replaceState({}, "", "/code");
+  await wait(250);
+  window.location.assign(data.downloadUrl);
 }
 
 resumeAfterCheckout();
