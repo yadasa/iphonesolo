@@ -41,6 +41,7 @@ test("Stripe checkout is server-created and paid sessions gate the download", as
   assert.match(server, /github\.com\/yadasa\/iphonesolo\/archive\/refs\/heads\/main\.zip/);
   const rewrites = firebase.hosting.rewrites;
   for (const [source, functionId] of [
+    ["/api/code-health", "codeHealth"],
     ["/api/code-checkout", "codeCheckout"],
     ["/api/code-verify", "codeVerify"],
     ["/api/code-download", "codeDownload"],
@@ -53,6 +54,27 @@ test("Stripe checkout is server-created and paid sessions gate the download", as
       `${source} should route to ${functionId}`,
     );
   }
+});
+
+test("Stripe setup is one secret and deploy verifies it automatically", async () => {
+  const workflow = await read(".github/workflows/deploy-firebase-hosting.yml");
+  const server = await read("functions/index.js");
+  assert.match(workflow, /Validate Stripe configuration/);
+  assert.match(workflow, /api\.stripe\.com\/v1\/account/);
+  assert.match(workflow, /secrets\.STRIPE_SECRET_KEY/);
+  assert.match(workflow, /functions\/.env/);
+  assert.match(workflow, /Verify Stripe donation backend/);
+  assert.match(workflow, /\/api\/code-health/);
+  assert.doesNotMatch(workflow, /skipping Stripe functions deployment/);
+  assert.match(server, /exports\.codeHealth/);
+  assert.match(server, /await stripeRequest\("\/account"\)/);
+});
+
+test("paid return retries verification and starts the download without a second click", async () => {
+  const client = await read("public/code/code.js");
+  assert.match(client, /fetch\("\/api\/code-health"/);
+  assert.match(client, /for \(let attempt = 0; attempt < 10; attempt \+= 1\)/);
+  assert.match(client, /window\.location\.assign\(data\.downloadUrl\)/);
 });
 
 test("existing Download Code action is gated through /code", async () => {
