@@ -15,41 +15,23 @@
 
     .keiazo-ad-pill-halo,
     .keiazo-ad-pill-body {
-      vector-effect: non-scaling-stroke;
-    }
-
-    .keiazo-ad-pill-halo {
-      fill: none;
-      stroke: rgba(155, 178, 255, 0.82);
-      stroke-width: 2.6;
-      opacity: 0.72;
+      fill: rgba(255, 255, 255, 0.105);
+      stroke: rgba(255, 255, 255, 0.42);
+      stroke-width: 0.9;
       filter:
-        drop-shadow(0 0 4px rgba(143, 168, 255, 0.58))
-        drop-shadow(0 0 10px rgba(143, 168, 255, 0.42))
-        drop-shadow(0 0 18px rgba(143, 168, 255, 0.24));
-      animation: keiazoAdPillGlow 2.8s ease-in-out infinite;
-    }
-
-    .keiazo-ad-pill-body {
-      fill: rgba(10, 13, 27, 0.955);
-      stroke: rgba(185, 201, 255, 0.84);
-      stroke-width: 1.15;
-      filter:
-        drop-shadow(0 4px 10px rgba(0, 0, 0, 0.34))
-        drop-shadow(0 0 9px rgba(143, 168, 255, 0.24));
+        drop-shadow(0 5px 12px rgba(0, 0, 0, 0.24))
+        drop-shadow(0 -1px 4px rgba(255, 255, 255, 0.12));
     }
 
     .keiazo-ad-pill-text {
-      fill: #f8faff;
-      stroke: rgba(6, 9, 18, 0.32);
-      stroke-width: 0.45;
-      paint-order: stroke fill;
+      fill: rgba(255, 255, 255, 0.96);
+      stroke: none;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
-      font-weight: 800;
-      letter-spacing: -0.018em;
+      font-weight: 650;
+      letter-spacing: -0.01em;
       text-anchor: middle;
       dominant-baseline: central;
-      filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.5));
+      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.42));
       pointer-events: none;
       user-select: none;
     }
@@ -65,25 +47,6 @@
         drop-shadow(0 0 8px rgba(143, 168, 255, 0.44))
         drop-shadow(0 0 14px rgba(143, 168, 255, 0.2));
       animation: keiazoSettingsOscillate 2.65s ease-in-out infinite;
-    }
-
-    @keyframes keiazoAdPillGlow {
-      0%, 100% {
-        opacity: 0.58;
-        stroke-width: 2.1;
-        filter:
-          drop-shadow(0 0 3px rgba(143, 168, 255, 0.46))
-          drop-shadow(0 0 8px rgba(143, 168, 255, 0.30))
-          drop-shadow(0 0 14px rgba(143, 168, 255, 0.18));
-      }
-      50% {
-        opacity: 0.96;
-        stroke-width: 3.1;
-        filter:
-          drop-shadow(0 0 5px rgba(175, 195, 255, 0.76))
-          drop-shadow(0 0 12px rgba(143, 168, 255, 0.56))
-          drop-shadow(0 0 24px rgba(143, 168, 255, 0.30));
-      }
     }
 
     @keyframes keiazoSettingsOscillate {
@@ -106,7 +69,6 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .keiazo-ad-pill-halo,
       .dock-interaction .keiazo-settings-glow-target {
         animation: none !important;
       }
@@ -208,18 +170,22 @@
     body?.setAttribute("d", d);
     if (!text) return;
 
-    const fontSize = Math.max(11.75, Math.min(13.75, geometry.height * 0.57));
-    const textWidth = Math.max(48, geometry.width - Math.max(16, geometry.height * 0.75));
+    const label = adLabel();
+    const availableWidth = Math.max(
+      48,
+      geometry.width - Math.max(16, geometry.height * 0.75),
+    );
+    const fontSize = Math.max(
+      7.75,
+      Math.min(12, availableWidth / Math.max(1, label.length * 0.54)),
+    );
     text.setAttribute("x", String(geometry.centerX));
     text.setAttribute("y", String(geometry.centerY));
     text.setAttribute("font-size", fontSize.toFixed(2));
-    text.setAttribute("textLength", textWidth.toFixed(2));
-    text.setAttribute("lengthAdjust", "spacingAndGlyphs");
-    text.setAttribute(
-      "transform",
-      `rotate(${geometry.angle.toFixed(3)} ${geometry.centerX.toFixed(2)} ${geometry.centerY.toFixed(2)})`,
-    );
-    text.textContent = adLabel();
+    text.removeAttribute("textLength");
+    text.removeAttribute("lengthAdjust");
+    text.removeAttribute("transform");
+    text.textContent = label;
   }
 
   function findOverlay(svg) {
