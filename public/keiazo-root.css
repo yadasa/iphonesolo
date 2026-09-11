@@ -20,7 +20,9 @@
 .solo-shell:not(.desktop) .device-screen {
   position: fixed;
   inset: 0 auto auto 0;
+  width: 100vw;
   width: var(--keiazo-viewport-width);
+  height: 100dvh;
   height: var(--keiazo-viewport-height);
   min-width: 0;
   min-height: 0;
@@ -32,7 +34,9 @@
 .solo-shell:not(.desktop) #gl,
 .solo-shell:not(.desktop) .chrome,
 .solo-shell:not(.desktop) .dock-interaction {
+  width: 100vw;
   width: var(--keiazo-viewport-width);
+  height: 100dvh;
   height: var(--keiazo-viewport-height);
 }
 
