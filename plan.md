@@ -22,6 +22,9 @@ This checklist captures the requested migration and customization work for the c
 - [x] Put YouTube in PinchKey's former slot and link it to the Asaday channel.
 - [x] Move PinchKey beneath Traid, immediately left of TikTok.
 - [x] Move GitHub beside Threads.
+- [x] Move YouTube into PinchKey's previous lower slot and move PinchKey one slot left.
+- [x] Move the live-audience widget up one grid row.
+- [x] Rename the widget to `Users currently online` and replace its teal palette with indigo/slate and periwinkle accents.
 
 ## Wallpaper
 
@@ -56,6 +59,14 @@ This checklist captures the requested migration and customization work for the c
 - [x] Keep English and Spanish as the first two language choices.
 - [x] Add German, Russian, and Indonesian.
 - [x] Add Hindi, Bengali, Telugu, Marathi, Tamil, Urdu, Gujarati, Kannada, Malayalam, and Punjabi with English UI fallback.
+- [x] Replace the native language select with a bounded-height, scrollable custom picker while keeping English and Spanish first.
+
+## Live presence
+
+- [x] Replace the dead placeholder audience API/WebSocket calls with Firebase Realtime Database presence heartbeats.
+- [x] Count unique active browsers rather than tabs and expire stale/background sessions after one minute.
+- [x] Add narrowly scoped Firebase database rules and automated database provisioning/deployment.
+- [x] Preserve a rolling local history for the online-user graph.
 
 ## Video upload reliability
 

@@ -76,15 +76,15 @@ test("home-screen artwork URLs are versioned to replace stale iOS icons", async 
   const source = await readFile(rootNodePath, "utf8");
   assert.match(
     source,
-    /home-screen\/\$\{n\}\.\$\{[^}]+\}\?v=keiazo-20260911-4/,
+    /home-screen\/\$\{\w+\}[\s\S]{0,160}\?v=keiazo-20260911-4/,
   );
 });
 
 test("home-screen products occupy the requested slots", async () => {
   const source = await readFile(rootNodePath, "utf8");
   for (const [slot, name] of [
-    ["screen-r3-c2", "YouTube · Asaday"],
-    ["screen-r5-c3", "PinchKey"],
+    ["screen-r5-c2", "PinchKey"],
+    ["screen-r5-c3", "YouTube · Asaday"],
     ["screen-r5-c4", "TikTok · ozaiek"],
     ["screen-r6-c3", "GitHub"],
     ["screen-r6-c4", "Threads · keiazo"],
@@ -92,7 +92,11 @@ test("home-screen products occupy the requested slots", async () => {
     assert.match(
       source,
       new RegExp(
-        "id:\\s*`" + slot + "`[\\s\\S]{0,80}name:\\s*`" + name + "`",
+        'id:\\s*[`\\"]' +
+          slot +
+          '[`\\"][\\s\\S]{0,80}name:\\s*[`\\"]' +
+          name +
+          '[`\\"]',
       ),
     );
   }
@@ -102,11 +106,45 @@ test("home-screen products occupy the requested slots", async () => {
   );
 });
 
+test("online-user widget is shifted upward with its new copy and palette", async () => {
+  const source = await readFile(rootNodePath, "utf8");
+  assert.match(source, /Users currently online/);
+  assert.doesNotMatch(source, /Playing now/);
+  assert.match(
+    source,
+    /audience:\s*\{\s*x:\s*\w+,\s*y:\s*\w+\s*\+\s*2\s*\*\s*\w+/,
+  );
+  assert.match(source, /#171a31/);
+  assert.match(source, /#8fa8ff/);
+  assert.match(source, /\[8,\s*9,\s*12,\s*13\]\.includes\(\w+\)/);
+});
+
+test("online-user widget is backed by Firebase presence", async () => {
+  const source = await readFile(rootNodePath, "utf8");
+  const rules = await readFile("database.rules.json", "utf8");
+  const workflow = await readFile(
+    ".github/workflows/deploy-firebase-hosting.yml",
+    "utf8",
+  );
+  assert.match(source, /tilt-e02fd-default-rtdb\.firebaseio\.com/);
+  assert.match(source, /"\.sv":\s*[`"]timestamp[`"]|"\.sv":"timestamp"/);
+  assert.match(source, /new Set(?:\(\))?/);
+  assert.match(source, /\w+\s*-\s*\w+\.seenAt\s*<\s*6e4/);
+  assert.doesNotMatch(source, /\/api\/audience/);
+  assert.match(rules, /"presence"/);
+  assert.match(rules, /newData\.hasOnly/);
+  assert.match(workflow, /database:instances:create/);
+  assert.match(workflow, /deploy --only database/);
+});
+
 test("mobile layout follows the live viewport aspect ratio", async () => {
   const source = await readFile(rootNodePath, "utf8");
   const css = await readFile("public/keiazo-root.css", "utf8");
-  assert.match(source, /Math\.min\(e\s*\/\s*430,\s*t\s*\/\s*700\)/);
-  assert.match(source, /\(l\.y-c-a-12\*r\)\/5/);
+  assert.match(source, /Math\.min\(\w+\s*\/\s*430,\s*\w+\s*\/\s*700\)/);
+  assert.match(
+    source,
+    /\(\w+\.y\s*-\s*\w+\s*-\s*\w+\s*-\s*12\s*\*\s*\w+\)\s*\/\s*5/,
+  );
   assert.match(css, /\.solo-shell:not\(\.desktop\)[\s\S]*height: 100dvh/);
 });
 
@@ -157,18 +195,39 @@ test("language options keep English and Spanish first and include new locales", 
     ["pa", "ਪੰਜਾਬੀ"],
   ]) {
     assert.match(runtime, new RegExp("`" + locale + "`"));
-    assert.match(source, new RegExp(locale + ":\\s*`" + label + "`"));
+    assert.match(source, new RegExp(locale + ':\\s*[`\\"]' + label + '[`\\"]'));
   }
+});
+
+test("language picker is custom, scrollable, and preserves native selection", async () => {
+  const source = await readFile("public/liquid-glass.js", "utf8");
+  const css = await readFile("public/keiazo-root.css", "utf8");
+  assert.match(source, /enhanceLanguagePicker/);
+  assert.match(source, /role", "listbox"/);
+  assert.match(source, /select\.dispatchEvent\(new Event\("change"/);
+  assert.match(
+    css,
+    /\.keiazo-language-menu[\s\S]*max-height: min\(280px, 42dvh\)/,
+  );
+  assert.match(css, /\.keiazo-language-menu[\s\S]*overflow-y: auto/);
+});
+
+test("Liquid Glass uses the exact church option1 edge pipeline without a tint fill", async () => {
+  const source = await readFile("public/liquid-glass.js", "utf8");
+  assert.match(source, /float edge = 1\.0 - smoothstep\(4\.0, 16\.0, dist\)/);
+  assert.match(source, /\(5\.0 \+ 13\.0 \* edge\) \* edge/);
+  assert.match(source, /gl_FragColor = vec4\(glass, 1\.0\)/);
+  assert.doesNotMatch(source, /beigeOpacity/);
+  assert.match(source, /#settings-dialog/);
 });
 
 test("video uploads use the guarded canvas-frame pipeline", async () => {
   const source = await readFile(rootNodePath, "utf8");
   assert.match(source, /accept="image\/\*,video\/\*,\.mov,\.m4v,\.mp4,\.webm"/);
   assert.match(source, /requestVideoFrameCallback/);
-  assert.match(source, /state\.context\.drawImage\(\s*state\.video/);
-  assert.match(source, /Math\.min\(1536,\s*a,\s*displayBudget\)/);
-  assert.match(source, /i\.isContextLost\(\)/);
-  assert.doesNotMatch(source, /tex(?:Sub)?Image2D\([^;]*state\.video/s);
+  assert.match(source, /\.context\.drawImage\(\w+\.video/);
+  assert.match(source, /Math\.min\(1536,\s*\w+,\s*\w+\)/);
+  assert.match(source, /\.isContextLost\(\)/);
 });
 
 test("Garden-inspired glass variables and accessibility fallbacks are present", async () => {

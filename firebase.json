@@ -3,16 +3,15 @@
     "source": "functions",
     "runtime": "nodejs20"
   },
+  "database": {
+    "rules": "database.rules.json"
+  },
   "hosting": {
     "target": "keiazotilt",
     "public": "public",
     "cleanUrls": true,
     "trailingSlash": false,
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "headers": [
       {
         "source": "**/*.@(js|css|svg|webmanifest)",

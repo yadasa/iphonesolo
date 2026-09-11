@@ -1,6 +1,6 @@
 (() => {
   const TARGET_SELECTOR =
-    "#motion-permission, #keiazo-quick-menu, dialog[aria-labelledby='fullscreen-help-title']";
+    "#motion-permission, #settings-dialog, #keiazo-quick-menu, dialog[aria-labelledby='fullscreen-help-title']";
   const source = () => document.querySelector("#gl");
   const icon = (path) =>
     `<svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`;
@@ -71,6 +71,78 @@
     return shader;
   }
 
+  function enhanceLanguagePicker() {
+    const picker = document.querySelector(".language-picker");
+    const select = picker?.querySelector("select");
+    if (!picker || !select || picker.dataset.customLanguage) return;
+    picker.dataset.customLanguage = "true";
+    select.classList.add("keiazo-native-language");
+
+    const control = document.createElement("div");
+    control.className = "keiazo-language-control";
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "keiazo-language-trigger";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    const menu = document.createElement("div");
+    menu.className = "keiazo-language-menu";
+    menu.setAttribute("role", "listbox");
+    menu.hidden = true;
+
+    const sync = () => {
+      const selected = select.options[select.selectedIndex];
+      trigger.innerHTML = `<span>${selected?.textContent || "English"}</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg>`;
+      menu.querySelectorAll("[data-language]").forEach((option) => {
+        const active = option.dataset.language === select.value;
+        option.classList.toggle("is-selected", active);
+        option.setAttribute("aria-selected", String(active));
+      });
+    };
+    [...select.options].forEach((option) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "keiazo-language-option";
+      item.dataset.language = option.value;
+      item.setAttribute("role", "option");
+      item.textContent = option.textContent;
+      item.addEventListener("click", () => {
+        select.value = option.value;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        menu.hidden = true;
+        trigger.setAttribute("aria-expanded", "false");
+        sync();
+        trigger.focus();
+      });
+      menu.append(item);
+    });
+    trigger.addEventListener("click", () => {
+      menu.hidden = !menu.hidden;
+      trigger.setAttribute("aria-expanded", String(!menu.hidden));
+      if (!menu.hidden)
+        menu
+          .querySelector(".is-selected")
+          ?.scrollIntoView({ block: "nearest" });
+    });
+    control.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !menu.hidden) {
+        menu.hidden = true;
+        trigger.setAttribute("aria-expanded", "false");
+        trigger.focus();
+      }
+    });
+    document.addEventListener("pointerdown", (event) => {
+      if (!control.contains(event.target)) {
+        menu.hidden = true;
+        trigger.setAttribute("aria-expanded", "false");
+      }
+    });
+    select.addEventListener("change", sync);
+    control.append(trigger, menu);
+    picker.append(control);
+    sync();
+  }
+
   function attachLiquidGlass(dialog) {
     if (dialog.dataset.liquidGlassAttached) return;
     dialog.dataset.liquidGlassAttached = "true";
@@ -131,12 +203,9 @@
         float sd = tgSdRoundedRect(p, halfSize, r);
         if (sd > 0.0) return color;
 
-        vec3 beige = vec3(0.93725, 0.91373, 0.81176);
-        const float beigeOpacity = 0.38;
-        vec3 tintedColor = mix(color, beige, beigeOpacity);
         float dist = -sd;
         float edge = 1.0 - smoothstep(4.0, 16.0, dist);
-        if (edge <= 0.001) return tintedColor;
+        if (edge <= 0.001) return color;
 
         float eps = 0.65;
         vec2 grad;
@@ -149,9 +218,8 @@
         float rim = 1.0 - smoothstep(0.0, 5.0, dist);
         float light = max(0.0, dot(grad, normalize(vec2(-0.55, -0.83))));
         glass += vec3(1.0) * rim * (0.18 + light * 0.42);
-        glass = mix(glass, vec3(0.95, 0.98, 1.0), 0.075 * edge);
-        glass = mix(glass, beige, beigeOpacity);
-        return mix(tintedColor, glass, edge);
+        glass = mix(glass, vec3(0.95, 0.98, 1.0), 0.075);
+        return glass;
       }
 
       void main() {
@@ -283,7 +351,13 @@
 
   function boot() {
     createQuickMenu();
+    enhanceLanguagePicker();
     document.querySelectorAll(TARGET_SELECTOR).forEach(attachLiquidGlass);
+    const appObserver = new MutationObserver(() => {
+      enhanceLanguagePicker();
+      document.querySelectorAll(TARGET_SELECTOR).forEach(attachLiquidGlass);
+    });
+    appObserver.observe(document.body, { childList: true, subtree: true });
     const scene = source();
     if (!scene) return;
     scene.addEventListener(
