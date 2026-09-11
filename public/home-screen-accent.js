@@ -10,30 +10,71 @@
 
   const styles = `
     .keiazo-ad-pill-overlay {
-      pointer-events: none;
+      overflow: visible;
+    }
+
+    .keiazo-ad-pill-link {
+      cursor: pointer;
+      pointer-events: auto;
     }
 
     .keiazo-ad-pill-halo,
+    .keiazo-ad-pill-rim,
     .keiazo-ad-pill-body {
-      fill: rgba(255, 255, 255, 0.105);
-      stroke: rgba(255, 255, 255, 0.42);
-      stroke-width: 0.9;
+      fill: none;
+      stroke-linecap: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .keiazo-ad-pill-halo {
+      stroke: rgba(143, 168, 255, 0.44);
       filter:
-        drop-shadow(0 5px 12px rgba(0, 0, 0, 0.24))
-        drop-shadow(0 -1px 4px rgba(255, 255, 255, 0.12));
+        drop-shadow(0 0 5px rgba(171, 192, 255, 0.44))
+        drop-shadow(0 0 11px rgba(143, 168, 255, 0.32))
+        drop-shadow(0 0 20px rgba(143, 168, 255, 0.18));
+      animation: keiazoAdPillGlow 3.1s ease-in-out infinite;
+    }
+
+    .keiazo-ad-pill-rim {
+      stroke: rgba(190, 204, 255, 0.56);
+      filter: drop-shadow(0 1px 5px rgba(0, 0, 0, 0.28));
+    }
+
+    .keiazo-ad-pill-body {
+      stroke: rgba(15, 19, 34, 0.94);
+      filter:
+        drop-shadow(0 5px 12px rgba(0, 0, 0, 0.28))
+        drop-shadow(0 -1px 3px rgba(255, 255, 255, 0.08));
     }
 
     .keiazo-ad-pill-text {
-      fill: rgba(255, 255, 255, 0.96);
+      fill: rgba(255, 255, 255, 0.98);
       stroke: none;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
-      font-weight: 650;
-      letter-spacing: -0.01em;
+      font-weight: 780;
+      letter-spacing: -0.018em;
       text-anchor: middle;
       dominant-baseline: central;
-      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.42));
+      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
       pointer-events: none;
       user-select: none;
+    }
+
+    @keyframes keiazoAdPillGlow {
+      0%, 100% {
+        stroke-opacity: 0.56;
+        filter:
+          drop-shadow(0 0 4px rgba(171, 192, 255, 0.34))
+          drop-shadow(0 0 9px rgba(143, 168, 255, 0.24))
+          drop-shadow(0 0 16px rgba(143, 168, 255, 0.12));
+      }
+      50% {
+        stroke-opacity: 1;
+        filter:
+          drop-shadow(0 0 6px rgba(205, 216, 255, 0.62))
+          drop-shadow(0 0 14px rgba(143, 168, 255, 0.42))
+          drop-shadow(0 0 26px rgba(143, 168, 255, 0.2));
+      }
     }
 
     .dock-interaction .keiazo-settings-glow-target {
@@ -69,6 +110,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+      .keiazo-ad-pill-halo,
       .dock-interaction .keiazo-settings-glow-target {
         animation: none !important;
       }
@@ -84,7 +126,7 @@
   }
 
   function adLabel() {
-    return `Advertise your business here for $${nextBid}?`;
+    return `Advertise your business · $${nextBid}`;
   }
 
   function updateAdLabels() {
@@ -119,35 +161,75 @@
     return priceFetch;
   }
 
-  function geometryFromPath(d) {
-    const points = [];
+  function firstTwoPathPoints(d) {
     const matcher = /(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g;
+    const points = [];
     let match;
-    while ((match = matcher.exec(d))) {
+    while (points.length < 2 && (match = matcher.exec(d))) {
       points.push({ x: Number(match[1]), y: Number(match[2]) });
     }
-    if (points.length < 2) return null;
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const point of points) {
-      minX = Math.min(minX, point.x);
-      minY = Math.min(minY, point.y);
-      maxX = Math.max(maxX, point.x);
-      maxY = Math.max(maxY, point.y);
+    return points.length === 2 ? points : null;
+  }
+
+  function viewScale(svg) {
+    const box = svg.viewBox?.baseVal;
+    const width = box?.width || svg.clientWidth || 430;
+    const height = box?.height || svg.clientHeight || 700;
+    return Math.max(0.45, Math.min(width / 430, height / 700));
+  }
+
+  function capsuleGeometry(svg, sourcePath) {
+    const d = sourcePath.getAttribute("d");
+    if (!d) return null;
+    const points = firstTwoPathPoints(d);
+    if (!points) return null;
+
+    const [first, second] = points;
+    const dx = second.x - first.x;
+    const dy = second.y - first.y;
+    const length = Math.hypot(dx, dy);
+    if (!Number.isFinite(length) || length < 1) return null;
+
+    const scale = viewScale(svg);
+    const ux = dx / length;
+    const uy = dy / length;
+    let nx = -uy;
+    let ny = ux;
+    if (ny < 0) {
+      nx *= -1;
+      ny *= -1;
     }
-    const first = points[0];
-    const second = points[1];
+
+    const originalHalfHeight = 11 * scale;
+    const visualHeight = 28 * scale;
+    const targetTotalWidth = 198 * scale;
+    const targetCenterlineLength = Math.max(
+      length + 26 * scale,
+      targetTotalWidth - visualHeight,
+    );
+    const extension = Math.max(10 * scale, (targetCenterlineLength - length) / 2);
+
+    const start = {
+      x: first.x - ux * extension + nx * originalHalfHeight,
+      y: first.y - uy * extension + ny * originalHalfHeight,
+    };
+    const end = {
+      x: second.x + ux * extension + nx * originalHalfHeight,
+      y: second.y + uy * extension + ny * originalHalfHeight,
+    };
+    const center = {
+      x: (start.x + end.x) / 2,
+      y: (start.y + end.y) / 2,
+    };
+
     return {
-      x: minX,
-      y: minY,
-      width: Math.max(1, maxX - minX),
-      height: Math.max(1, maxY - minY),
-      centerX: (minX + maxX) / 2,
-      centerY: (minY + maxY) / 2,
-      angle:
-        (Math.atan2(second.y - first.y, second.x - first.x) * 180) / Math.PI,
+      start,
+      end,
+      center,
+      angle: (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI,
+      scale,
+      visualHeight,
+      totalWidth: Math.hypot(end.x - start.x, end.y - start.y) + visualHeight,
     };
   }
 
@@ -157,34 +239,53 @@
     return element;
   }
 
-  function syncAdOverlay(sourcePath, overlay) {
-    const d = sourcePath.getAttribute("d");
-    if (!d) return;
-    const geometry = geometryFromPath(d);
+  function setLine(line, geometry, width) {
+    if (!line) return;
+    line.setAttribute("x1", geometry.start.x.toFixed(2));
+    line.setAttribute("y1", geometry.start.y.toFixed(2));
+    line.setAttribute("x2", geometry.end.x.toFixed(2));
+    line.setAttribute("y2", geometry.end.y.toFixed(2));
+    line.setAttribute("stroke-width", width.toFixed(2));
+  }
+
+  function syncAdOverlay(svg, sourcePath, overlay) {
+    const geometry = capsuleGeometry(svg, sourcePath);
     if (!geometry) return;
 
-    const halo = overlay.querySelector(".keiazo-ad-pill-halo");
-    const body = overlay.querySelector(".keiazo-ad-pill-body");
-    const text = overlay.querySelector(".keiazo-ad-pill-text");
-    halo?.setAttribute("d", d);
-    body?.setAttribute("d", d);
-    if (!text) return;
+    setLine(
+      overlay.querySelector(".keiazo-ad-pill-halo"),
+      geometry,
+      geometry.visualHeight + 7 * geometry.scale,
+    );
+    setLine(
+      overlay.querySelector(".keiazo-ad-pill-rim"),
+      geometry,
+      geometry.visualHeight + 2.2 * geometry.scale,
+    );
+    setLine(
+      overlay.querySelector(".keiazo-ad-pill-body"),
+      geometry,
+      geometry.visualHeight,
+    );
 
+    const text = overlay.querySelector(".keiazo-ad-pill-text");
+    if (!text) return;
     const label = adLabel();
-    const availableWidth = Math.max(
-      48,
-      geometry.width - Math.max(16, geometry.height * 0.75),
-    );
+    const availableWidth = Math.max(80, geometry.totalWidth - 22 * geometry.scale);
     const fontSize = Math.max(
-      7.75,
-      Math.min(12, availableWidth / Math.max(1, label.length * 0.54)),
+      8.6 * geometry.scale,
+      Math.min(
+        11.2 * geometry.scale,
+        availableWidth / Math.max(1, label.length * 0.54),
+      ),
     );
-    text.setAttribute("x", String(geometry.centerX));
-    text.setAttribute("y", String(geometry.centerY));
+    text.setAttribute("x", geometry.center.x.toFixed(2));
+    text.setAttribute("y", geometry.center.y.toFixed(2));
     text.setAttribute("font-size", fontSize.toFixed(2));
-    text.removeAttribute("textLength");
-    text.removeAttribute("lengthAdjust");
-    text.removeAttribute("transform");
+    text.setAttribute(
+      "transform",
+      `rotate(${geometry.angle.toFixed(2)} ${geometry.center.x.toFixed(2)} ${geometry.center.y.toFixed(2)})`,
+    );
     text.textContent = label;
   }
 
@@ -195,10 +296,10 @@
   }
 
   function enhanceAdPill(svg) {
-    const link = [...svg.querySelectorAll("a.product-link")].find(
+    const sourceLink = [...svg.querySelectorAll("a.product-link")].find(
       (anchor) => anchor.getAttribute("href") === AD_HREF,
     );
-    const sourcePath = link?.querySelector("path.settings-target");
+    const sourcePath = sourceLink?.querySelector("path.settings-target");
     let overlay = findOverlay(svg);
 
     if (!sourcePath) {
@@ -209,12 +310,18 @@
 
     if (!overlay) {
       overlay = makeSvgElement("g", "keiazo-ad-pill-overlay");
-      overlay.setAttribute("aria-hidden", "true");
-      overlay.append(
-        makeSvgElement("path", "keiazo-ad-pill-halo"),
-        makeSvgElement("path", "keiazo-ad-pill-body"),
+      const link = makeSvgElement("a", "keiazo-ad-pill-link");
+      link.setAttribute("href", AD_HREF);
+      link.setAttribute("target", "_blank");
+      link.setAttribute("rel", "noopener noreferrer");
+      link.setAttribute("aria-label", "Advertise your business on iPhone Solo");
+      link.append(
+        makeSvgElement("line", "keiazo-ad-pill-halo"),
+        makeSvgElement("line", "keiazo-ad-pill-rim"),
+        makeSvgElement("line", "keiazo-ad-pill-body"),
         makeSvgElement("text", "keiazo-ad-pill-text"),
       );
+      overlay.append(link);
       svg.append(overlay);
     }
 
@@ -227,7 +334,7 @@
         frame = requestAnimationFrame(() => {
           frame = 0;
           if (overlay.isConnected && sourcePath.isConnected) {
-            syncAdOverlay(sourcePath, overlay);
+            syncAdOverlay(svg, sourcePath, overlay);
           }
         });
       };
@@ -239,7 +346,7 @@
       overlay._keiazoObserver = observer;
     }
 
-    syncAdOverlay(sourcePath, overlay);
+    syncAdOverlay(svg, sourcePath, overlay);
     refreshPrice();
   }
 
