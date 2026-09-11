@@ -255,3 +255,17 @@ test("Garden-inspired glass variables and accessibility fallbacks are present", 
   assert.match(css, /prefers-reduced-transparency: reduce/);
   assert.match(css, /prefers-contrast: more/);
 });
+
+
+test("home-screen winner card uses The Highest Bid feed and tracked ad metadata", async () => {
+  const source = await readFile(rootNodePath, "utf8");
+  assert.match(source, /https:\/\/thehighest\.bid\/api\/embed\?limit=1/);
+  assert.match(source, /Advertise your business here for/);
+  assert.match(source, /currentTopBidDollars/);
+  assert.match(source, /clickUrl/);
+  assert.match(source, /imageUrl\|\|n\.faviconUrl/);
+  assert.match(source, /adScroll/);
+  assert.match(source, /performance\.now\(\)-adState\.loadedAt/);
+  assert.equal(source.includes("open.spotify.com"), false);
+  assert.equal(source.includes("p.scdn.co/mp3-preview"), false);
+});

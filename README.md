@@ -17,6 +17,7 @@ A clean-room, mobile-first reconstruction of the interaction behind Solo: choose
 - Installable/offline PWA shell
 - Firebase Hosting configuration targeting `keiazotilt`
 - Firebase Realtime Database presence heartbeats for the unique-browser `Users currently online` count
+- Live TheHighest.bid rank-one advertisement card with attributed clicks, creative metadata, dynamic placement pricing, and overflow-safe scrolling copy
 - GitHub Actions tests and production deployment on every push to `main`
 
 ## Local development

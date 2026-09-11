@@ -112,3 +112,13 @@ This checklist captures the requested migration and customization work for the c
 - [x] Verify the Firebase Hosting deployment completes for the initial implementation commit (`960298f`).
 - [x] Verify the corrective Instagram, sessions, and separate Traid tile deployment completes (`0488812`).
 - [x] Confirm CI can authenticate the configured Stripe secret successfully.
+
+
+## The Highest Bid home-screen advertisement
+
+- [x] Replace the Spotify preview card with the live rank-one ad from `https://thehighest.bid/api/embed?limit=1`.
+- [x] Use the feed's tracked `clickUrl`, square creative or favicon metadata, title, label, and description.
+- [x] Show the dynamic permanent-number-one entry price above the card.
+- [x] Clip metadata to the existing rounded rectangle and auto-scroll overflowing descriptions, pause at the bottom, then snap to the top.
+- [x] Fall back to a branded The Highest Bid call-to-action if the feed or creative is unavailable.
+- [x] Remove the Spotify audio preview and Spotify destination.
