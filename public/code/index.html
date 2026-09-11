@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0b10" />
+    <meta name="description" content="Support iPhoneSolo and download the source code immediately after your donation." />
+    <link rel="canonical" href="https://iphonesolo.com/code" />
+    <link rel="icon" type="image/png" href="/solo-favicon.png" />
+    <link rel="apple-touch-icon" href="/solo-apple-touch-icon.png" />
+    <link rel="stylesheet" href="/code/code.css?v=20260911-1" />
+    <title>Get the code · iPhoneSolo</title>
+  </head>
+  <body>
+    <main class="code-shell">
+      <a class="brand" href="/" aria-label="Back to iPhoneSolo">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>iPhoneSolo</span>
+      </a>
+
+      <section class="glass-card hero" aria-labelledby="code-title">
+        <p class="eyebrow">SOURCE ACCESS</p>
+        <h1 id="code-title">Want the code?</h1>
+        <p class="lede">Make a donation and download immediately.</p>
+        <button class="primary" id="open-donation" type="button">I want the code</button>
+      </section>
+
+      <section class="more-actions" aria-label="Work with me">
+        <a href="https://asaday.co/consultation">1 on 1 consultation</a>
+        <a href="https://asaday.co/consultation">Hire me</a>
+      </section>
+
+      <p class="payment-status" id="payment-status" role="status" hidden></p>
+    </main>
+
+    <dialog id="donation-modal" aria-labelledby="donation-title">
+      <form id="donation-form" novalidate>
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">SUPPORT THE BUILD</p>
+            <h2 id="donation-title">Choose your donation</h2>
+          </div>
+          <button class="close" type="button" id="close-donation" aria-label="Close">×</button>
+        </div>
+
+        <label class="amount-label" for="amount">Donation amount</label>
+        <div class="amount-field">
+          <span aria-hidden="true">$</span>
+          <input id="amount" name="amount" type="number" inputmode="decimal" step="0.01" placeholder="10" autocomplete="off" />
+        </div>
+
+        <div class="presets" aria-label="Preset donation amounts">
+          <button type="button" data-amount="5">$5</button>
+          <button type="button" data-amount="10">$10</button>
+          <button type="button" data-amount="50">$50</button>
+          <button type="button" data-amount="100">$100</button>
+        </div>
+
+        <p class="form-error" id="donation-error" role="alert" hidden></p>
+        <button class="primary donate" type="submit" id="donate-button">Donate &amp; download code</button>
+        <p class="secure-note">Secure checkout powered by Stripe.</p>
+      </form>
+    </dialog>
+
+    <script type="module" src="/code/code.js?v=20260911-1"></script>
+  </body>
+</html>

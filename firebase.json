@@ -1,4 +1,8 @@
 {
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
   "hosting": {
     "target": "keiazotilt",
     "public": "public",
@@ -47,6 +51,31 @@
       }
     ],
     "rewrites": [
+      {
+        "source": "/api/code-checkout",
+        "function": {
+          "functionId": "codeCheckout",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/code-verify",
+        "function": {
+          "functionId": "codeVerify",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/code-download",
+        "function": {
+          "functionId": "codeDownload",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/code",
+        "destination": "/code/index.html"
+      },
       {
         "source": "**",
         "destination": "/index.html"

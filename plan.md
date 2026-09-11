@@ -68,6 +68,20 @@ This checklist captures the requested migration and customization work for the c
 - [x] Handle autoplay, race-safe tap pause/resume, visibility changes, object-URL cleanup, replacement media, and WebGL context loss without surfacing false playback errors.
 - [x] Preserve the fold/perspective effect for uploaded video.
 
+## Code / donation page
+
+- [x] Add `/code` using the root experience's dark, Liquid Glass visual language.
+- [x] Use the copy “Want the code? Make a donation and download immediately.” with a confirmation CTA.
+- [x] Open a donation modal with a custom amount input and $5 / $10 / $50 / $100 presets.
+- [x] Enforce the $2 minimum in both client and server validation without advertising the minimum before a too-small attempt.
+- [x] Create Stripe Checkout Sessions on the server so the Stripe secret is never exposed to the browser.
+- [x] Verify the Stripe Checkout Session is paid before exposing the download redirect.
+- [x] Start the current `main` source archive download automatically after successful payment verification.
+- [x] Route the existing in-app Download Code action through `/code` rather than directly to the public archive.
+- [x] Add “1 on 1 consultation” and “Hire me” buttons beneath the donation flow; both point to `https://asaday.co/consultation`.
+- [x] Add automated tests for donation copy, preset amounts, hidden minimum behavior, Stripe rewrites, server-side payment verification, and gated download routing.
+- [ ] Confirm the `STRIPE_SECRET_KEY` Actions secret is configured for this repository and verify the Functions deployment in production.
+
 ## Validation
 
 - [x] Verify the generated JS parses successfully.

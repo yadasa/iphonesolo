@@ -35,6 +35,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('node:fs');
+          const path = require('node:path');
           const account = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
           if (!account.project_id) throw new Error('The Firebase service account has no project_id.');
           const config = {
@@ -46,8 +47,23 @@ jobs:
             }
           };
           fs.writeFileSync('.firebaserc', `${JSON.stringify(config, null, 2)}\n`);
+          const credentialPath = path.join(process.env.RUNNER_TEMP, 'firebase-service-account.json');
+          fs.writeFileSync(credentialPath, process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
           fs.appendFileSync(process.env.GITHUB_ENV, `FIREBASE_PROJECT_ID=${account.project_id}\n`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `GOOGLE_APPLICATION_CREDENTIALS=${credentialPath}\n`);
           NODE
+
+      - name: Deploy Stripe checkout functions
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          if [ -z "$STRIPE_SECRET_KEY" ]; then
+            echo "STRIPE_SECRET_KEY is not configured for this repository; skipping Stripe functions deployment."
+            exit 0
+          fi
+          trap 'rm -f functions/.env' EXIT
+          printf 'STRIPE_SECRET_KEY=%s\n' "$STRIPE_SECRET_KEY" > functions/.env
+          npx --yes firebase-tools@latest deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
 
       - name: Deploy keiazotilt
         uses: FirebaseExtended/action-hosting-deploy@v0
