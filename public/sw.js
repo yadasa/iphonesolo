@@ -1,4 +1,4 @@
-const CACHE = "keiazotilt-v11";
+const CACHE = "keiazotilt-v12";
 const SHELL = ["/", "/index.html", "/assets/style.css", "/assets/app.js", "/assets/motion.js", "/assets/renderer.js", "/app.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", event => {

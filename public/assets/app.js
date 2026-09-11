@@ -62,12 +62,13 @@ function settingsEqual(left, right) {
 
 function formatSetting(input, value) {
   if (input.dataset.format === "percent") return `${Math.round(value * 100)}%`;
+  if (input.dataset.format === "signed-percent") return `${value > 0 ? "+" : ""}${Math.round(value * 100)}%`;
   if (input.dataset.format === "pixels") return `${Math.round(value)} px`;
   return Number(value).toFixed(2);
 }
 
 function settingsPayload() {
-  return JSON.stringify({ version: 1, settings: renderSettings }, null, 2);
+  return JSON.stringify({ version: 2, settings: renderSettings }, null, 2);
 }
 
 function updateHistoryControls() {
@@ -78,8 +79,11 @@ function updateHistoryControls() {
 function refreshSettingsUi() {
   for (const input of settingInputs) {
     const value = renderSettings[input.dataset.setting];
-    input.value = String(value);
-    document.querySelector(`[data-output="${input.dataset.setting}"]`).textContent = formatSetting(input, value);
+    if (input.type === "checkbox") input.checked = Boolean(value);
+    else {
+      input.value = String(value);
+      document.querySelector(`[data-output="${input.dataset.setting}"]`).textContent = formatSetting(input, value);
+    }
   }
   renderer?.setSettings(renderSettings);
   if (!settingsJsonWrap.hidden) settingsJson.textContent = settingsPayload();
@@ -192,7 +196,7 @@ for (const input of settingInputs) {
   input.addEventListener("focus", beginEdit);
   input.addEventListener("input", () => {
     beginEdit();
-    renderSettings[input.dataset.setting] = Number(input.value);
+    renderSettings[input.dataset.setting] = input.type === "checkbox" ? input.checked : Number(input.value);
     refreshSettingsUi();
   });
   input.addEventListener("change", commitSettingsEdit);

@@ -10,7 +10,7 @@ A clean-room, mobile-first reconstruction of the interaction behind Solo: choose
 - Render-loop optimizations: cached GPU locations, resize observation, new-frame-only video uploads, idle draw skipping, and background suspension
 - Guided iOS motion-permission flow, orientation compensation, calibration, dead zone, smoothing, and angle wraparound handling
 - Pointer-drag fallback for desktop testing
-- Collapsible live effect tuner for stretch, skew, compression, darkness, and Gaussian blur parameters, with single-gesture undo/redo and exportable JSON presets
+- Collapsible live effect tuner for stretch, skew, compression, vertical displacement, rotation influence, nonlinear distance curves, darkness, and Gaussian blur parameters up to 400%, with single-gesture undo/redo and versioned JSON presets
 - Local-only image decoding through an ephemeral object URL; selected photos are never uploaded or persisted
 - Fullscreen mode, safe-area-aware mobile UI, post-interaction iOS Home Screen guidance, and reduced-motion support
 - Installable/offline PWA shell

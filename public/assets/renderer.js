@@ -7,6 +7,9 @@ uniform float u_planeHeight;
 uniform float u_horizontalStretch;
 uniform float u_verticalCompression;
 uniform float u_perspectiveSkew;
+uniform float u_verticalDisplacement;
+uniform float u_transformFalloff;
+uniform float u_nonlinearFalloff;
 out vec2 v_uv;
 
 void main() {
@@ -17,14 +20,17 @@ void main() {
   float distanceFromAnchor = u_tilt < 0.0
     ? (a_position.x + 1.0) * 0.5
     : (1.0 - a_position.x) * 0.5;
-  float ramp = smoothstep(0.0, 1.0, distanceFromAnchor);
+  float ramp = pow(smoothstep(0.0, 1.0, distanceFromAnchor), u_transformFalloff);
+  if (u_nonlinearFalloff > 0.5) ramp = smoothstep(0.0, 1.0, ramp);
 
   float horizontalStretch = 1.0 + amount * u_horizontalStretch * ramp;
   float x = anchorX + (a_position.x - anchorX) * horizontalStretch;
   float verticalScale = max(0.05, 1.0 - amount * u_verticalCompression * ramp);
   float directionalSkew = -u_tilt * u_perspectiveSkew * ramp;
   float baseY = a_position.y * u_planeHeight;
-  float y = baseY * verticalScale + directionalSkew;
+  // Displacement is expressed as a fraction of the viewport height. NDC spans
+  // two units vertically, so multiply by two while preserving the anchor edge.
+  float y = baseY * verticalScale + directionalSkew + amount * u_verticalDisplacement * 2.0 * ramp;
   vec2 projected = vec2(x, y);
   gl_Position = vec4(projected, 0.0, 1.0);
   v_uv = a_uv;
@@ -42,6 +48,8 @@ uniform float u_darknessGradient;
 uniform float u_blurStrength;
 uniform float u_blurSize;
 uniform float u_blurFalloff;
+uniform float u_darknessFalloff;
+uniform float u_nonlinearFalloff;
 in vec2 v_uv;
 out vec4 outColor;
 
@@ -54,7 +62,8 @@ void main() {
   float amount = abs(u_tilt);
   float distanceFromAnchor = u_tilt < 0.0 ? v_uv.x : 1.0 - v_uv.x;
   float blurGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), u_blurFalloff);
-  float blurRadius = smoothstep(0.04, 1.0, amount) * blurGradient * u_blurSize;
+  if (u_nonlinearFalloff > 0.5) blurGradient = smoothstep(0.0, 1.0, blurGradient);
+  float blurRadius = smoothstep(0.04, 1.0, amount) * blurGradient * u_blurSize * max(1.0, u_blurStrength);
   vec2 blurStep = u_texelSize * blurRadius * normalize(vec2(1.0, u_tilt * 0.18));
 
   vec4 sharp = texture(u_texture, uv);
@@ -67,9 +76,10 @@ void main() {
   blurred += texture(u_texture, uv + blurStep * 2.4) * 0.08;
   blurred += texture(u_texture, uv - blurStep * 3.3) * 0.03;
   blurred += texture(u_texture, uv + blurStep * 3.3) * 0.03;
-  vec4 color = mix(sharp, blurred, clamp(u_blurStrength, 0.0, 1.0));
+  vec4 color = mix(sharp, blurred, min(u_blurStrength, 1.0));
 
-  float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), 0.72);
+  float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), u_darknessFalloff);
+  if (u_nonlinearFalloff > 0.5) shadowGradient = smoothstep(0.0, 1.0, shadowGradient);
   float tiltShadow = smoothstep(0.12, 0.82, amount);
   float depthShade = tiltShadow * shadowGradient * u_darknessGradient;
   color.rgb *= max(0.0, 1.0 - depthShade);
@@ -77,13 +87,18 @@ void main() {
 }`;
 
 export const DEFAULT_RENDER_SETTINGS = Object.freeze({
-  horizontalStretch: 1.56,
-  perspectiveSkew: 0.26,
-  verticalCompression: 1.10,
-  darknessGradient: 2.36,
+  horizontalStretch: 1.09,
+  perspectiveSkew: -0.18,
+  verticalCompression: 1.35,
+  verticalDisplacement: 0,
+  rotationInfluence: 1,
+  transformFalloff: 1,
+  darknessGradient: 2.23,
+  darknessFalloff: 0.72,
   gaussianBlurStrength: 1,
-  gaussianBlurSize: 36,
-  gaussianBlurFalloff: 1.35
+  gaussianBlurSize: 100,
+  gaussianBlurFalloff: 0.46,
+  nonlinearFalloff: false
 });
 
 function compile(gl, type, source) {
@@ -147,6 +162,9 @@ export class FoldRenderer {
       horizontalStretch: uniform("u_horizontalStretch"),
       verticalCompression: uniform("u_verticalCompression"),
       perspectiveSkew: uniform("u_perspectiveSkew"),
+      verticalDisplacement: uniform("u_verticalDisplacement"),
+      transformFalloff: uniform("u_transformFalloff"),
+      nonlinearFalloff: uniform("u_nonlinearFalloff"),
       hasTexture: uniform("u_hasTexture"),
       uvScale: uniform("u_uvScale"),
       uvOffset: uniform("u_uvOffset"),
@@ -154,7 +172,8 @@ export class FoldRenderer {
       darknessGradient: uniform("u_darknessGradient"),
       blurStrength: uniform("u_blurStrength"),
       blurSize: uniform("u_blurSize"),
-      blurFalloff: uniform("u_blurFalloff")
+      blurFalloff: uniform("u_blurFalloff"),
+      darknessFalloff: uniform("u_darknessFalloff")
     };
   }
 
@@ -258,7 +277,7 @@ export class FoldRenderer {
   render(fold, side = this.side) {
     const gl = this.gl;
     this.side = side || 1;
-    const signedTilt = this.side * Math.min(1, Math.max(0, fold / 82));
+    const signedTilt = this.side * Math.min(1, Math.max(0, fold / 82)) * this.settings.rotationInfluence;
     const supportsFrameCallback = this.video && "requestVideoFrameCallback" in this.video;
     const fallbackVideoFrame = this.video && !supportsFrameCallback && this.video.currentTime !== this.lastVideoTime;
     const hasFreshVideoFrame = Boolean(this.video && (this.videoFrameReady || fallbackVideoFrame));
@@ -273,7 +292,11 @@ export class FoldRenderer {
     gl.uniform1f(this.locations.horizontalStretch, this.settings.horizontalStretch);
     gl.uniform1f(this.locations.verticalCompression, this.settings.verticalCompression);
     gl.uniform1f(this.locations.perspectiveSkew, this.settings.perspectiveSkew);
+    gl.uniform1f(this.locations.verticalDisplacement, this.settings.verticalDisplacement);
+    gl.uniform1f(this.locations.transformFalloff, this.settings.transformFalloff);
+    gl.uniform1f(this.locations.nonlinearFalloff, this.settings.nonlinearFalloff ? 1 : 0);
     gl.uniform1f(this.locations.darknessGradient, this.settings.darknessGradient);
+    gl.uniform1f(this.locations.darknessFalloff, this.settings.darknessFalloff);
     gl.uniform1f(this.locations.blurStrength, this.settings.gaussianBlurStrength);
     gl.uniform1f(this.locations.blurSize, this.settings.gaussianBlurSize);
     gl.uniform1f(this.locations.blurFalloff, this.settings.gaussianBlurFalloff);
