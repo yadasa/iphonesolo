@@ -1,0 +1,17 @@
+iPhone 17 Pro Max
+Author: MajdyModels (https://sketchfab.com/MG990)
+Source: https://sketchfab.com/3d-models/iphone-17-pro-max-87fc1df741384124a8ce0226d2b2058d
+License: Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/
+
+GLB obtained from the CC BY 4.0 distribution in Phone Mockup Studio:
+https://github.com/quentin-pla/phone-mockup-studio/blob/main/source/iphone_17_pro_max.glb
+The distributed GLB includes embedded author/source/license metadata.
+
+Solo modifications at runtime: silver body/rail/back finish, mesh-derived screen corner radius,
+LiDAR cylinder lifted slightly off the camera plate to prevent depth fighting,
+fitted orientation and scale, darkened front
+surround, hidden glass overlay, depth-only screen material for the interactive
+Solo screen. Original geometry and textures retained in the distributed GLB.
+
+Fan-made model, not an official Apple asset. No endorsement implied.

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#d6d8dd"/><stop offset="1" stop-color="#898d96"/></linearGradient>
+    <linearGradient id="metal" x2=".6" y2="1"><stop stop-color="#fbfcfd"/><stop offset=".5" stop-color="#babdc4"/><stop offset="1" stop-color="#f3f4f6"/></linearGradient>
+    <path id="tooth" d="M118 26h20l4 28h-28z"/>
+  </defs>
+  <rect width="256" height="256" fill="url(#bg)"/>
+  <circle cx="128" cy="129" r="99" fill="#50545c" stroke="#eceef1" stroke-width="4"/>
+  <circle cx="128" cy="129" r="90" fill="none" stroke="#787c84" stroke-width="3"/>
+  <g fill="url(#metal)" stroke="#555a62" stroke-width="1.5">
+    <use href="#tooth"/><use href="#tooth" transform="rotate(30 128 128)"/><use href="#tooth" transform="rotate(60 128 128)"/><use href="#tooth" transform="rotate(90 128 128)"/><use href="#tooth" transform="rotate(120 128 128)"/><use href="#tooth" transform="rotate(150 128 128)"/><use href="#tooth" transform="rotate(180 128 128)"/><use href="#tooth" transform="rotate(210 128 128)"/><use href="#tooth" transform="rotate(240 128 128)"/><use href="#tooth" transform="rotate(270 128 128)"/><use href="#tooth" transform="rotate(300 128 128)"/><use href="#tooth" transform="rotate(330 128 128)"/>
+    <circle cx="128" cy="128" r="77"/>
+  </g>
+  <circle cx="128" cy="128" r="60" fill="#50545c" stroke="#f0f1f3" stroke-width="3"/>
+  <circle cx="128" cy="128" r="48" fill="url(#metal)" stroke="#2f333a" stroke-width="2"/>
+  <circle cx="128" cy="128" r="32" fill="#50545c" stroke="#f1f2f4" stroke-width="3"/>
+</svg>
