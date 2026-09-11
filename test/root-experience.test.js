@@ -9,7 +9,8 @@ async function imageDimensions(path) {
   if (bytes.subarray(1, 4).toString("ascii") === "PNG") {
     return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
   }
-  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) throw new Error(`Unknown image: ${path}`);
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8)
+    throw new Error(`Unknown image: ${path}`);
   let offset = 2;
   while (offset + 8 < bytes.length) {
     if (bytes[offset] !== 0xff) {
@@ -17,8 +18,16 @@ async function imageDimensions(path) {
       continue;
     }
     const marker = bytes[offset + 1];
-    if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
-      return { height: bytes.readUInt16BE(offset + 5), width: bytes.readUInt16BE(offset + 7) };
+    if (
+      [
+        0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce,
+        0xcf,
+      ].includes(marker)
+    ) {
+      return {
+        height: bytes.readUInt16BE(offset + 5),
+        width: bytes.readUInt16BE(offset + 7),
+      };
     }
     if (marker === 0xd8 || marker === 0xd9) {
       offset += 2;
@@ -36,10 +45,15 @@ test("root home-screen links use the requested destinations", async () => {
     "https://exempliph.ai/",
     "https://instagram.com/keiazo",
     "https://asaday.co/consultation",
+    "https://traid.ing/",
     "https://tiktok.com/ozaiek",
     "https://threads.com/keiazo",
   ]) {
-    assert.equal(source.split(url).length - 1, 1, `${url} should occur exactly once`);
+    assert.equal(
+      source.split(url).length - 1,
+      1,
+      `${url} should occur exactly once`,
+    );
   }
 });
 
@@ -48,12 +62,18 @@ test("replacement icons and wallpaper have renderer-safe dimensions", async () =
     ["public/home-screen/shellclick.png", { width: 1024, height: 1024 }],
     ["public/home-screen/x.jpg", { width: 1024, height: 1024 }],
     ["public/home-screen/rednote.jpg", { width: 1024, height: 1024 }],
+    ["public/home-screen/traid.jpg", { width: 1024, height: 1024 }],
     ["public/home-screen/colerm.jpg", { width: 1024, height: 1024 }],
     ["public/home-screen/wallpaper.jpg", { width: 942, height: 2048 }],
   ]);
   for (const [path, dimensions] of expected) {
     assert.deepEqual(await imageDimensions(path), dimensions, path);
   }
+});
+
+test("home-screen artwork URLs are versioned to replace stale iOS icons", async () => {
+  const source = await readFile(rootNodePath, "utf8");
+  assert.match(source, /home-screen\/\$\{n\}\.\$\{[^}]+\}\?v=keiazo-20260911-3/);
 });
 
 test("video uploads use the guarded canvas-frame pipeline", async () => {
