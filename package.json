@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npx --yes serve public",
     "test": "node --test",
-    "check": "node --check public/assets/app.js && node --check public/assets/renderer.js && node --check public/assets/motion.js && node --check public/sw.js && node --check public/liquid-glass.js && node --check public/code-gate.js && node --check public/code/code.js && node --check functions/index.js && node --check public/experiment/_app/immutable/entry/app.DBjMr3fU.js && node --check public/experiment/_app/immutable/nodes/2.CLft3SKH.js && node --check scripts/build-distribution.mjs",
+    "check": "node --check public/assets/app.js && node --check public/assets/renderer.js && node --check public/assets/motion.js && node --check public/sw.js && node --check public/liquid-glass.js && node --check public/head-branding.js && node --check public/code-gate.js && node --check public/code/code.js && node --check functions/index.js && node --check public/experiment/_app/immutable/entry/app.DBjMr3fU.js && node --check public/experiment/_app/immutable/nodes/2.CLft3SKH.js && node --check scripts/build-distribution.mjs",
     "build:distribution": "node scripts/build-distribution.mjs"
   },
   "engines": {

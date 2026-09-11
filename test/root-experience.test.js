@@ -101,7 +101,6 @@ test("home-screen artwork URLs are versioned to replace stale iOS icons", async 
 test("home-screen products occupy the requested slots", async () => {
   const source = await readFile(rootNodePath, "utf8");
   for (const [slot, name] of [
-    ["screen-r5-c2", "PinchKey"],
     ["screen-r5-c3", "YouTube · Asaday"],
     ["screen-r5-c4", "TikTok · ozaiek"],
     ["screen-r6-c3", "GitHub"],
@@ -124,6 +123,19 @@ test("home-screen products occupy the requested slots", async () => {
   );
 });
 
+test("PinchKey is suppressed before Svelte hydration", async () => {
+  const guard = await readFile("public/head-branding.js", "utf8");
+  const start = await readFile(
+    "public/experiment/_app/immutable/entry/start.DceLwiAH.js",
+    "utf8",
+  );
+  assert.match(guard, /pinchkey\.lumik\.space/);
+  assert.match(guard, /\/home-screen\/pinchkey\.png/);
+  assert.match(guard, /TRANSPARENT_ICON/);
+  assert.match(guard, /removePinchKeyLinks/);
+  assert.match(start, /head-branding\.js\?v=20260911-2/);
+});
+
 test("online-user widget is shifted upward with its new copy and palette", async () => {
   const source = await readFile(rootNodePath, "utf8");
   assert.match(source, /Users currently online/);
@@ -137,7 +149,7 @@ test("online-user widget is shifted upward with its new copy and palette", async
   assert.match(source, /\[8,\s*9,\s*12,\s*13\]\.includes\(\w+\)/);
 });
 
-test("online-user widget is backed by Firebase presence", async () => {
+test("online-user widget is backed by deploy-verified Firebase presence", async () => {
   const source = await readFile(rootNodePath, "utf8");
   const rules = await readFile("database.rules.json", "utf8");
   const workflow = await readFile(
@@ -150,9 +162,14 @@ test("online-user widget is backed by Firebase presence", async () => {
   assert.match(source, /\w+\s*-\s*\w+\.seenAt\s*<\s*6e4/);
   assert.doesNotMatch(source, /\/api\/audience/);
   assert.match(rules, /"presence"/);
-  assert.match(rules, /newData\.numChildren\(\) == 3/);
-  assert.match(workflow, /deploy --only database/);
-  assert.match(workflow, /continue-on-error: true/);
+  assert.match(rules, /newData\.hasChildren\(\['clientId', 'tabId', 'seenAt'\]\)/);
+  assert.match(rules, /"\$other"/);
+  assert.match(rules, /"\.validate": false/);
+  assert.doesNotMatch(rules, /numChildren/);
+  assert.match(workflow, /- name: Deploy live presence rules\n\s+run: npx --yes firebase-tools deploy --only database/);
+  assert.match(workflow, /- name: Verify live presence database/);
+  assert.match(workflow, /default-rtdb\.firebaseio\.com/);
+  assert.match(workflow, /Presence heartbeat write failed/);
 });
 
 test("mobile layout follows the live viewport aspect ratio", async () => {

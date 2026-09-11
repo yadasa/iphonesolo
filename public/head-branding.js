@@ -14,6 +14,11 @@
     manifest: "/flip.webmanifest",
   });
 
+  const PINCHKEY_URL = "https://pinchkey.lumik.space/";
+  const PINCHKEY_ASSET = "/home-screen/pinchkey.png";
+  const TRANSPARENT_ICON =
+    "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1024' height='1024' viewBox='0 0 1024 1024'%3E%3C/svg%3E";
+
   let applying = false;
   let scheduled = false;
 
@@ -116,7 +121,33 @@
     });
   }
 
+  // PinchKey still exists in the precompiled Svelte artifact. Neutralize it before
+  // hydration so it cannot paint onto the canvas, then remove its click target.
+  const imageSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
+  if (imageSrc?.get && imageSrc?.set && imageSrc.configurable) {
+    Object.defineProperty(HTMLImageElement.prototype, "src", {
+      configurable: true,
+      enumerable: imageSrc.enumerable,
+      get: imageSrc.get,
+      set(value) {
+        const requested = String(value ?? "");
+        imageSrc.set.call(
+          this,
+          requested.includes(PINCHKEY_ASSET) ? TRANSPARENT_ICON : value,
+        );
+      },
+    });
+  }
+
+  function removePinchKeyLinks(root = document) {
+    if (!root?.querySelectorAll) return;
+    for (const link of root.querySelectorAll(`a[href="${PINCHKEY_URL}"]`)) {
+      link.remove();
+    }
+  }
+
   enforceBranding();
+  removePinchKeyLinks();
 
   const observer = new MutationObserver(scheduleEnforcement);
   observer.observe(document.head, {
@@ -126,6 +157,27 @@
     attributeFilter: ["content", "href", "rel", "name", "property", "type", "sizes"],
   });
 
-  document.addEventListener("DOMContentLoaded", enforceBranding, { once: true });
-  window.addEventListener("pageshow", enforceBranding);
+  const productObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (!(node instanceof Element)) continue;
+        if (node.matches?.(`a[href="${PINCHKEY_URL}"]`)) node.remove();
+        else removePinchKeyLinks(node);
+      }
+    }
+  });
+  productObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+      enforceBranding();
+      removePinchKeyLinks();
+    },
+    { once: true },
+  );
+  window.addEventListener("pageshow", () => {
+    enforceBranding();
+    removePinchKeyLinks();
+  });
 })();

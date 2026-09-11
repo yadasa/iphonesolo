@@ -140,9 +140,36 @@ jobs:
           });
           NODE
 
-      - name: Deploy live presence rules when available
-        continue-on-error: true
+      - name: Deploy live presence rules
         run: npx --yes firebase-tools deploy --only database --project "$FIREBASE_PROJECT_ID" --non-interactive
+
+      - name: Verify live presence database
+        run: |
+          PRESENCE_BASE="https://${FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com"
+          TEST_ID="deploy-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          PAYLOAD="$(printf '{\"clientId\":\"%s\",\"tabId\":\"%s\",\"seenAt\":{\".sv\":\"timestamp\"}}' "$TEST_ID" "$TEST_ID")"
+
+          write_code="$(curl -sS -o /tmp/presence-put.json -w '%{http_code}' --max-time 20 \
+            -X PUT -H 'Content-Type: application/json' --data "$PAYLOAD" \
+            "${PRESENCE_BASE}/presence/${TEST_ID}.json")"
+          if [ "$write_code" != "200" ]; then
+            echo "::error::Presence heartbeat write failed (HTTP ${write_code}): $(cat /tmp/presence-put.json)"
+            exit 1
+          fi
+
+          presence="$(curl -fsSL --max-time 20 "${PRESENCE_BASE}/presence/${TEST_ID}.json")"
+          if ! printf '%s' "$presence" | grep -Fq "\"clientId\":\"${TEST_ID}\""; then
+            echo "::error::Presence heartbeat could not be read back."
+            exit 1
+          fi
+
+          delete_code="$(curl -sS -o /tmp/presence-delete.json -w '%{http_code}' --max-time 20 \
+            -X DELETE "${PRESENCE_BASE}/presence/${TEST_ID}.json")"
+          if [ "$delete_code" != "200" ]; then
+            echo "::error::Presence heartbeat cleanup failed (HTTP ${delete_code})."
+            exit 1
+          fi
+          echo "Live presence database accepts heartbeat writes, reads, and cleanup."
 
       - name: Validate Stripe configuration
         env:
