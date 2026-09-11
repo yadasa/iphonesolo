@@ -62,3 +62,19 @@ test("all entry points use the iPhone Solo favicon and social image", async () =
   assert.match(favicon, /id="right-half"/);
   assert.match(favicon, /id="dissolve-mask"/);
 });
+
+test("canonical branding survives Svelte head hydration", async () => {
+  const [start, branding] = await Promise.all([
+    readFile("public/experiment/_app/immutable/entry/start.DceLwiAH.js", "utf8"),
+    readFile("public/head-branding.js", "utf8"),
+  ]);
+
+  assert.match(start, /\/head-branding\.js\?v=20260911-1/);
+  assert.match(branding, /MutationObserver/);
+  assert.match(branding, /summary_large_image/);
+  assert.match(branding, /https:\/\/iphonesolo\.com\/og-image\.jpg/);
+  assert.match(branding, /\/favicon\.svg\?v=20260911-2/);
+  assert.match(branding, /og:site_name", "iPhone Solo"/);
+  assert.match(branding, /apple-mobile-web-app-title", "iPhone Solo"/);
+  assert.doesNotMatch(branding, /solo-icon\.png/);
+});
