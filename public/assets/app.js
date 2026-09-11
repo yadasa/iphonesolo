@@ -24,11 +24,6 @@ const settingsJsonWrap = document.querySelector("#settings-json-wrap");
 const settingsJson = document.querySelector("#settings-json");
 const copySettingsButton = document.querySelector("#copy-settings");
 
-const VIDEO_READY_TIMEOUT_MS = 20000;
-const TAP_MOVE_THRESHOLD_PX = 10;
-const VIDEO_EXTENSIONS = /\.(mp4|m4v|mov|webm|ogv|ogg)$/i;
-const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|heic|heif)$/i;
-
 let renderer;
 let imageUrl;
 let targetTilt = 0;
@@ -37,12 +32,9 @@ let previousTime = performance.now();
 let animationFrameId;
 let dragging = false;
 let pointerStart = 0;
-let pointerStartY = 0;
-let pointerMoved = false;
 let tiltStart = 0;
 let toastTimer;
 let activeVideo;
-let videoShouldPlay = false;
 let mediaReady = false;
 let hasInteracted = false;
 let installPromptScheduled = false;
@@ -140,126 +132,33 @@ function stopRendering() {
   animationFrameId = null;
 }
 
-function isVideoFile(file) {
-  return Boolean(file && (file.type?.startsWith("video/") || VIDEO_EXTENSIONS.test(file.name || "")));
-}
-
-function isImageFile(file) {
-  return Boolean(file && (file.type?.startsWith("image/") || IMAGE_EXTENSIONS.test(file.name || "")));
-}
-
-function videoErrorMessage(video) {
-  const code = video.error?.code;
-  if (code === MediaError.MEDIA_ERR_DECODE) return "This video could not be decoded. Try exporting it as H.264 or HEVC in an MP4/MOV container.";
-  if (code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) return "This video format or codec is not supported by this browser.";
-  return "That video could not be played in this browser.";
-}
-
-function waitForVideoReady(video) {
-  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const cleanup = () => {
-      clearTimeout(timer);
-      video.removeEventListener("loadeddata", onReady);
-      video.removeEventListener("canplay", onReady);
-      video.removeEventListener("error", onError);
-      video.removeEventListener("abort", onAbort);
-    };
-    const finish = callback => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      callback();
-    };
-    const onReady = () => {
-      if (video.videoWidth > 0 && video.videoHeight > 0 && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-        finish(resolve);
-      }
-    };
-    const onError = () => finish(() => reject(new Error(videoErrorMessage(video))));
-    const onAbort = () => finish(() => reject(new Error("Video loading was interrupted.")));
-    const timer = setTimeout(() => finish(() => reject(new Error("This video took too long to become playable. Try a smaller export or a different codec."))), VIDEO_READY_TIMEOUT_MS);
-
-    video.addEventListener("loadeddata", onReady);
-    video.addEventListener("canplay", onReady);
-    video.addEventListener("error", onError, { once: true });
-    video.addEventListener("abort", onAbort, { once: true });
-    video.load();
-  });
-}
-
-function stopActiveVideo() {
-  if (!activeVideo) return;
-  videoShouldPlay = false;
-  activeVideo.pause();
-  activeVideo.removeAttribute("src");
-  activeVideo.load();
-  activeVideo = null;
-}
-
-async function setVideoPlaying(shouldPlay, { announce = false } = {}) {
-  if (!activeVideo) return;
-  videoShouldPlay = shouldPlay;
-  if (!shouldPlay) {
-    activeVideo.pause();
-    if (announce) showToast("Video paused.");
-    return;
-  }
-
-  try {
-    await activeVideo.play();
-    if (announce) showToast("Video playing.");
-  } catch {
-    videoShouldPlay = false;
-    showToast("Playback was blocked. Tap the video again to play it.");
-  }
-}
-
-async function toggleVideoPlayback() {
-  if (!activeVideo) return;
-  await setVideoPlaying(activeVideo.paused || activeVideo.ended, { announce: true });
-}
-
 async function loadFile(file) {
-  const videoFile = isVideoFile(file);
-  const imageFile = isImageFile(file);
-  if (!file || (!imageFile && !videoFile)) {
+  if (!file || (!file.type.startsWith("image/") && !file.type.startsWith("video/"))) {
     showToast("Choose a supported photo or video file.");
     return;
   }
-
   const nextUrl = URL.createObjectURL(file);
   try {
-    stopActiveVideo();
-
-    if (videoFile) {
+    if (activeVideo) {
+      activeVideo.pause();
+      activeVideo.removeAttribute("src");
+      activeVideo.load();
+      activeVideo = null;
+    }
+    if (file.type.startsWith("video/")) {
       const video = document.createElement("video");
       video.muted = true;
-      video.defaultMuted = true;
       video.loop = true;
-      video.autoplay = true;
       video.playsInline = true;
       video.preload = "auto";
-      video.disablePictureInPicture = true;
-      video.setAttribute("playsinline", "");
-      video.setAttribute("webkit-playsinline", "");
-      video.setAttribute("muted", "");
       video.src = nextUrl;
-
-      await waitForVideoReady(video);
+      await new Promise((resolve, reject) => {
+        video.addEventListener("loadeddata", resolve, { once: true });
+        video.addEventListener("error", reject, { once: true });
+      });
       renderer.setVideo(video);
       activeVideo = video;
-      videoShouldPlay = true;
-
-      video.addEventListener("error", () => {
-        if (video === activeVideo) showToast(videoErrorMessage(video));
-      });
-
-      await setVideoPlaying(true);
+      video.play().catch(() => showToast("Tap the screen to start video playback."));
     } else {
       const image = new Image();
       image.decoding = "async";
@@ -267,7 +166,6 @@ async function loadFile(file) {
       await image.decode();
       renderer.setImage(image);
     }
-
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     imageUrl = nextUrl;
     mediaReady = true;
@@ -275,10 +173,9 @@ async function loadFile(file) {
     app.dataset.ready = "true";
     targetTilt = 0;
     renderedTilt = 0;
-  } catch (error) {
+  } catch {
     URL.revokeObjectURL(nextUrl);
-    stopActiveVideo();
-    showToast(error?.message || "That media file could not be played in this browser.");
+    showToast("That media file could not be played in this browser.");
   } finally {
     picker.value = "";
   }
@@ -404,35 +301,23 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 canvas.addEventListener("pointerdown", event => {
+  activeVideo?.play().catch(() => {});
   dragging = true;
-  pointerMoved = false;
   pointerStart = event.clientX;
-  pointerStartY = event.clientY;
   tiltStart = targetTilt;
   canvas.setPointerCapture(event.pointerId);
 });
 
 canvas.addEventListener("pointermove", event => {
   if (!dragging) return;
-  const dx = event.clientX - pointerStart;
-  const dy = event.clientY - pointerStartY;
-  if (Math.hypot(dx, dy) >= TAP_MOVE_THRESHOLD_PX) pointerMoved = true;
-  const delta = dx / Math.max(1, innerWidth);
+  const delta = (event.clientX - pointerStart) / Math.max(1, innerWidth);
   targetTilt = clamp(tiltStart + delta * 190, -180, 180);
   if (Math.abs(delta) > .04) hasInteracted = true;
 });
 
-canvas.addEventListener("pointerup", async event => {
-  if (!dragging) return;
+canvas.addEventListener("pointerup", event => {
   dragging = false;
-  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-  if (!pointerMoved && activeVideo) await toggleVideoPlayback();
-});
-
-canvas.addEventListener("pointercancel", event => {
-  dragging = false;
-  pointerMoved = false;
-  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  canvas.releasePointerCapture(event.pointerId);
 });
 
 document.addEventListener("visibilitychange", () => {
@@ -442,15 +327,12 @@ document.addEventListener("visibilitychange", () => {
     return;
   }
   if (tracker.listening) tracker.recalibrate();
-  if (videoShouldPlay) activeVideo?.play().catch(() => { videoShouldPlay = false; });
+  activeVideo?.play().catch(() => {});
   startRendering();
 });
 
 window.addEventListener("orientationchange", () => tracker.recalibrate(), { passive: true });
-window.addEventListener("beforeunload", () => {
-  stopActiveVideo();
-  if (imageUrl) URL.revokeObjectURL(imageUrl);
-});
+window.addEventListener("beforeunload", () => { if (imageUrl) URL.revokeObjectURL(imageUrl); });
 
 for (const close of document.querySelectorAll(".dialog-close, .dialog-done")) {
   close.addEventListener("click", () => {
