@@ -15,13 +15,17 @@ const rootNode = readFileSync(
 );
 
 test("desktop presentation uses its own editorial experience", () => {
-  assert.match(index, /desktop-redesign\.js\?v=20260911-1/);
+  assert.match(index, /desktop-redesign\.js\?v=20260911-2/);
   assert.match(desktop, /Your screen has another side\./);
   assert.match(desktop, /IPHONE SOLO \/ MOTION STUDY/);
   assert.match(desktop, /See how it works/);
   assert.match(css, /Desktop motion-study redesign/);
   assert.match(css, /\.solo-shell\.desktop/);
   assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)/);
+  assert.match(desktop, /keiazo-gradient-blob--violet/);
+  assert.match(desktop, /keiazo-gradient-blob--ember/);
+  assert.match(css, /High-energy desktop gradient field/);
+  assert.match(css, /@keyframes keiazo-blob-violet/);
 });
 
 test("desktop phone model has a black graphite material palette", () => {
