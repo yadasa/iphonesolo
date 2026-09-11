@@ -139,3 +139,12 @@ This checklist captures the requested migration and customization work for the c
 - [x] Make the Add to Home Screen build use standalone display mode and the same measured visual viewport as the website.
 - [x] Reserve the iOS status bar instead of changing the renderer's usable aspect ratio with an overlay.
 - [x] Enforce one source archive response per paid Stripe Checkout Session with an atomic server-only Firebase Realtime Database claim.
+
+
+## Desktop presentation
+
+- [x] Replace the generic desktop framing with a distinct editorial motion-study layout.
+- [x] Rewrite desktop-only copy and calls to action.
+- [x] Finish the 3D iPhone chassis in a black graphite material palette.
+- [x] Preserve the tuned mobile and coarse-pointer experience.
+- [x] Add regression coverage for the desktop layout and black phone.
