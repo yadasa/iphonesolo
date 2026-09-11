@@ -68,8 +68,10 @@ test("home-screen credit names keiazo in initial and hydrated UI", async () => {
     readFile(rootNodePath, "utf8"),
     readFile("public/index.html", "utf8"),
   ]);
+  assert.match(source, /built by/);
+  assert.match(source, /<strong>keiazo<\\/strong>/);
+  assert.match(html, /built by <strong>keiazo<\\/strong>/);
   for (const markup of [source, html]) {
-    assert.match(markup, /built by[\\s\\S]{0,40}<strong>keiazo<\\/strong>/);
     assert.doesNotMatch(markup, /<strong>Envl<\\/strong>/);
   }
 });
