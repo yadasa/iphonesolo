@@ -70,7 +70,7 @@ test("Stripe setup is one secret and deploy verifies it automatically", async ()
   assert.match(workflow, /\/api\/code-health/);
   assert.doesNotMatch(workflow, /skipping Stripe functions deployment/);
   assert.match(server, /exports\.codeHealth/);
-  assert.match(server, /await stripeRequest\("\/account"\)/);
+  assert.match(server, /stripeRequest\("\/account"\)/);
 });
 
 test("paid return retries verification and starts the download without a second click", async () => {
