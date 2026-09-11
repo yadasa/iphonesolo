@@ -53,15 +53,9 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_ENV, `GOOGLE_APPLICATION_CREDENTIALS=${credentialsPath}\n`);
           NODE
 
-      - name: Configure live presence database
-        run: |
-          INSTANCE_NAME="${FIREBASE_PROJECT_ID}-default-rtdb"
-          if ! npx --yes firebase-tools database:get / --instance "$INSTANCE_NAME" --project "$FIREBASE_PROJECT_ID" >/dev/null 2>&1; then
-            cp database.rules.json "$RUNNER_TEMP/presence-database.rules.json"
-            npx --yes firebase-tools init database --project "$FIREBASE_PROJECT_ID" --non-interactive
-            cp "$RUNNER_TEMP/presence-database.rules.json" database.rules.json
-          fi
-          npx --yes firebase-tools deploy --only database --project "$FIREBASE_PROJECT_ID" --non-interactive
+      - name: Deploy live presence rules when available
+        continue-on-error: true
+        run: npx --yes firebase-tools deploy --only database --project "$FIREBASE_PROJECT_ID" --non-interactive
 
       - name: Deploy Stripe checkout functions
         env:

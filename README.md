@@ -42,7 +42,7 @@ For GitHub Actions, add this repository secret:
 
 - `FIREBASE_SERVICE_ACCOUNT_KEIAZOTILT`: the complete JSON for a Google service account allowed to deploy Hosting and Realtime Database rules for the Firebase project that owns the `keiazotilt` Hosting site.
 
-The deployment workflow validates the JavaScript and unit tests, provisions the project's default Realtime Database when needed, deploys its narrowly scoped presence rules, and then deploys the `public/` directory to the existing `keiazotilt` Hosting site's live channel. It can also be run manually from the Actions tab.
+The deployment workflow validates the JavaScript and unit tests, deploys the narrowly scoped presence rules when the project has a default Realtime Database, and then deploys the `public/` directory to the existing `keiazotilt` Hosting site's live channel. It can also be run manually from the Actions tab. The Firebase project's default Realtime Database must be created once in the Firebase console because the Hosting deployment service account cannot enable new Google APIs.
 
 ## Privacy
 

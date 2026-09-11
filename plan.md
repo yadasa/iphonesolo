@@ -65,8 +65,9 @@ This checklist captures the requested migration and customization work for the c
 
 - [x] Replace the dead placeholder audience API/WebSocket calls with Firebase Realtime Database presence heartbeats.
 - [x] Count unique active browsers rather than tabs and expire stale/background sessions after one minute.
-- [x] Add narrowly scoped Firebase database rules and automated database provisioning/deployment.
+- [x] Add narrowly scoped Firebase database rules and deploy them automatically once a database exists.
 - [x] Preserve a rolling local history for the online-user graph.
+- [ ] Create the default Realtime Database in Firebase project `tilt-e02fd` (blocked by the Hosting service account's Google API permissions).
 
 ## Video upload reliability
 

@@ -133,8 +133,8 @@ test("online-user widget is backed by Firebase presence", async () => {
   assert.doesNotMatch(source, /\/api\/audience/);
   assert.match(rules, /"presence"/);
   assert.match(rules, /newData\.hasOnly/);
-  assert.match(workflow, /firebase-tools init database/);
   assert.match(workflow, /deploy --only database/);
+  assert.match(workflow, /continue-on-error: true/);
 });
 
 test("mobile layout follows the live viewport aspect ratio", async () => {
