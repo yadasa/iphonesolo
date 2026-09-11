@@ -39,9 +39,9 @@ test("Stripe checkout is server-created and paid sessions gate the download", as
   assert.match(server, /payment_status === "paid"/);
   assert.match(server, /metadata\?\.product === PRODUCT_KEY/);
   assert.match(server, /downloads", DOWNLOAD_FILENAME/);
-  assert.match(server, /Content-Type", "application\\/zip"/);
-  assert.match(server, /fs\\.createReadStream\\(DOWNLOAD_PATH\\)/);
-  assert.doesNotMatch(server, /archive\\/refs\\/heads\\/main\\.zip/);
+  assert.ok(server.includes('res.set("Content-Type", "application/zip")'));
+  assert.ok(server.includes("fs.createReadStream(DOWNLOAD_PATH)"));
+  assert.ok(!server.includes("archive/refs/heads/main.zip"));
   const rewrites = firebase.hosting.rewrites;
   for (const [source, functionId] of [
     ["/api/code-health", "codeHealth"],
