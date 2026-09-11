@@ -150,9 +150,7 @@ function isImageFile(file) {
 }
 
 function waitForVideoMetadata(video) {
-  if (video.readyState >= HTMLMediaElement.HAVE_METADATA && video.videoWidth > 0 && video.videoHeight > 0) {
-    return Promise.resolve();
-  }
+  if (video.readyState >= HTMLMediaElement.HAVE_METADATA && video.videoWidth > 0 && video.videoHeight > 0) return Promise.resolve();
   return new Promise((resolve, reject) => {
     let settled = false;
     const cleanup = () => {
@@ -190,22 +188,12 @@ function waitForFirstVideoFrame(video) {
       });
     });
   }
-
   return new Promise((resolve, reject) => {
     const started = performance.now();
     const check = () => {
-      if (video.error) {
-        reject(new Error("That video could not be decoded by this browser."));
-        return;
-      }
-      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
-        resolve();
-        return;
-      }
-      if (performance.now() - started >= VIDEO_READY_TIMEOUT_MS) {
-        reject(new Error("The video decoder did not produce a frame in time."));
-        return;
-      }
+      if (video.error) return reject(new Error("That video could not be decoded by this browser."));
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) return resolve();
+      if (performance.now() - started >= VIDEO_READY_TIMEOUT_MS) return reject(new Error("The video decoder did not produce a frame in time."));
       requestAnimationFrame(check);
     };
     check();
@@ -235,18 +223,10 @@ function createVideoFramePlan(video) {
   const workingLongEdge = Math.min(sourceLongEdge, SAFE_VIDEO_LONG_EDGE, maxTextureSize, displayTarget);
   const textureScale = Math.min(1, maxTextureSize / sourceWidth, maxTextureSize / sourceHeight);
   const displayScale = Math.min(1, workingLongEdge / sourceLongEdge);
-  const scale = Math.min(textureScale, displayScale);
+  const scale = Math.min(1, textureScale, displayScale);
 
-  if (scale >= 0.999) {
-    return {
-      frameSource: video,
-      width: sourceWidth,
-      height: sourceHeight,
-      updateFrame: null,
-      downscaled: false
-    };
-  }
-
+  // Always isolate decoded video frames behind a 2D canvas. This prevents iOS
+  // WebKit from receiving a live HTMLVideoElement in texImage2D/texSubImage2D.
   const frameCanvas = document.createElement("canvas");
   frameCanvas.width = Math.max(2, Math.round(sourceWidth * scale));
   frameCanvas.height = Math.max(2, Math.round(sourceHeight * scale));
@@ -254,6 +234,7 @@ function createVideoFramePlan(video) {
   if (!frameContext) throw new Error("Could not create a safe video frame buffer.");
 
   const updateFrame = () => {
+    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
     frameContext.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
   };
   updateFrame();
@@ -263,7 +244,7 @@ function createVideoFramePlan(video) {
     width: frameCanvas.width,
     height: frameCanvas.height,
     updateFrame,
-    downscaled: true
+    downscaled: scale < 0.999
   };
 }
 
@@ -271,12 +252,14 @@ async function prepareVideo(file, url) {
   const video = document.createElement("video");
   video.muted = true;
   video.defaultMuted = true;
+  video.autoplay = true;
   video.loop = true;
   video.playsInline = true;
   video.preload = "metadata";
   video.disablePictureInPicture = true;
   video.setAttribute("playsinline", "");
   video.setAttribute("webkit-playsinline", "");
+  video.setAttribute("muted", "");
   video.src = url;
 
   try {
@@ -287,7 +270,6 @@ async function prepareVideo(file, url) {
       throw new Error("Video playback was blocked before a safe frame could be created. Tap and choose the video again.");
     }
     await waitForFirstVideoFrame(video);
-
     const framePlan = createVideoFramePlan(video);
     return { type: "video", video, url, shouldPlay: true, ...framePlan };
   } catch (error) {
@@ -308,6 +290,18 @@ function commitMedia(nextMedia) {
   renderedTilt = 0;
 }
 
+async function resumeVideoMedia(media, { rebind = false } = {}) {
+  if (!media || media.type !== "video") return;
+  const video = media.video;
+  media.shouldPlay = true;
+  await video.play();
+  if (rebind) {
+    await waitForFirstVideoFrame(video);
+    media.updateFrame?.();
+    renderer.setVideo(video, media);
+  }
+}
+
 async function loadFile(file) {
   const videoFile = isVideoFile(file);
   const imageFile = isImageFile(file);
@@ -324,6 +318,9 @@ async function loadFile(file) {
       candidateVideo = nextMedia.video;
       renderer.setVideo(nextMedia.video, nextMedia);
       commitMedia(nextMedia);
+      // The iOS file picker can briefly trigger page visibility changes. Reassert
+      // the intended autoplay state after the candidate has been fully committed.
+      await resumeVideoMedia(nextMedia);
       if (nextMedia.downscaled) showToast(`Large video optimized to ${nextMedia.width}×${nextMedia.height} for stable playback.`);
     } else {
       const image = new Image();
@@ -336,11 +333,8 @@ async function loadFile(file) {
   } catch (error) {
     if (candidateVideo) disposeVideo(candidateVideo);
     URL.revokeObjectURL(nextUrl);
-    if (renderer?.isContextLost()) {
-      showToast("The graphics engine restarted after that media failed. Your previous media will be restored automatically.");
-    } else {
-      showToast(error?.message || "That media file could not be played in this browser.");
-    }
+    if (renderer?.isContextLost()) showToast("The graphics engine restarted after that media failed. Your previous media will be restored automatically.");
+    else showToast(error?.message || "That media file could not be played in this browser.");
   } finally {
     picker.value = "";
   }
@@ -351,22 +345,18 @@ async function restoreActiveMedia() {
   restoreInFlight = (async () => {
     if (!activeMedia || renderer.isContextLost()) return;
     renderer.setSettings(renderSettings);
-
     if (activeMedia.type === "image") {
       renderer.setImage(activeMedia.image);
       return;
     }
-
     const video = activeMedia.video;
     const shouldRemainPaused = !activeMedia.shouldPlay;
     if (video.paused) await video.play();
     await waitForFirstVideoFrame(video);
-    if (typeof activeMedia.updateFrame === "function") activeMedia.updateFrame();
+    activeMedia.updateFrame?.();
     renderer.setVideo(video, activeMedia);
     if (shouldRemainPaused) video.pause();
-  })().finally(() => {
-    restoreInFlight = null;
-  });
+  })().finally(() => { restoreInFlight = null; });
   return restoreInFlight;
 }
 
@@ -380,9 +370,9 @@ async function toggleVideoPlayback() {
   }
 
   try {
-    activeMedia.shouldPlay = true;
-    await video.play();
-    if (!renderer.isContextLost() && !renderer.video) await restoreActiveMedia();
+    // Rebind after the first resumed frame. A previous media-upload error may
+    // have stopped requestVideoFrameCallback while leaving renderer.video set.
+    await resumeVideoMedia(activeMedia, { rebind: true });
   } catch {
     activeMedia.shouldPlay = false;
     showToast("Playback could not start. Try tapping the video again.");
@@ -577,7 +567,7 @@ document.addEventListener("visibilitychange", async () => {
   }
   if (tracker.listening) tracker.recalibrate();
   if (activeMedia?.type === "video" && activeMedia.shouldPlay) {
-    try { await activeMedia.video.play(); } catch {}
+    try { await resumeVideoMedia(activeMedia); } catch {}
   }
   startRendering();
 });
