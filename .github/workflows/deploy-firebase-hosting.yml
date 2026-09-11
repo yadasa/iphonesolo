@@ -69,6 +69,9 @@ jobs:
           printf 'STRIPE_SECRET_KEY=%s\n' "$STRIPE_SECRET_KEY" > functions/.env
           npx --yes firebase-tools@latest deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
 
+      - name: Stamp deployment
+        run: printf '%s\n' "$GITHUB_SHA" > public/deploy-version.txt
+
       - name: Deploy keiazotilt
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -77,3 +80,21 @@ jobs:
           projectId: ${{ env.FIREBASE_PROJECT_ID }}
           target: keiazotilt
           channelId: live
+
+      - name: Verify iphonesolo.com custom domain
+        run: |
+          for attempt in $(seq 1 18); do
+            marker="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/deploy-version.txt?sha=${GITHUB_SHA}" || true)"
+            root_html="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/?sha=${GITHUB_SHA}" || true)"
+            code_html="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/code?sha=${GITHUB_SHA}" || true)"
+            if [ "$marker" = "$GITHUB_SHA" ] \
+              && printf '%s' "$root_html" | grep -Fq '<title>iPhone Solo</title>' \
+              && printf '%s' "$code_html" | grep -Fq '<title>Get the code · iPhone Solo</title>'; then
+              echo "iphonesolo.com is serving commit ${GITHUB_SHA}."
+              exit 0
+            fi
+            echo "Waiting for iphonesolo.com to serve ${GITHUB_SHA} (attempt ${attempt}/18)..."
+            sleep 10
+          done
+          echo "iphonesolo.com did not serve the deployed commit within the verification window."
+          exit 1
