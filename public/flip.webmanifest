@@ -1,7 +1,8 @@
 {
   "id": "/",
-  "name": "Solo",
-  "short_name": "Solo",
+  "name": "iPhone Solo",
+  "short_name": "iPhone Solo",
+  "description": "Tilt your iPhone and watch perspective shift in real time with a motion-powered optical illusion.",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",
