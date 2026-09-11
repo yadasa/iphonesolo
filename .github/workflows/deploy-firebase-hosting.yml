@@ -153,7 +153,6 @@ jobs:
           echo "Stripe key validated; no Stripe product, price, or webhook setup is required."
 
       - name: Deploy Stripe checkout functions
-        continue-on-error: true
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
@@ -175,7 +174,6 @@ jobs:
           channelId: live
 
       - name: Verify Stripe donation backend
-        continue-on-error: true
         run: |
           for attempt in $(seq 1 12); do
             health="$(curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
