@@ -96,7 +96,12 @@ This checklist captures the requested migration and customization work for the c
 - [x] Route the existing in-app Download Code action through `/code` rather than directly to the public archive.
 - [x] Add “1 on 1 consultation” and “Hire me” buttons beneath the donation flow; both point to `https://asaday.co/consultation`.
 - [x] Add automated tests for donation copy, preset amounts, hidden minimum behavior, Stripe rewrites, server-side payment verification, and gated download routing.
-- [ ] Confirm the `STRIPE_SECRET_KEY` Actions secret is configured for this repository and verify the Functions deployment in production.
+- [x] Validate the `STRIPE_SECRET_KEY` Actions secret against Stripe during CI.
+- [x] Avoid manual Stripe Product, Price, Payment Link, webhook, or Dashboard checkout configuration by creating each Checkout Session dynamically.
+- [x] Add a Stripe health endpoint and post-deploy health verification.
+- [x] Retry paid-session verification automatically and begin the download without a second click.
+- [ ] Grant the Firebase CI service account Cloud Functions deployment permissions in Google Cloud IAM; the valid Stripe key is already configured, but Functions deployment currently fails with Google Cloud HTTP 403 before upload.
+- [ ] Verify the Stripe Functions deployment in production after the one-time IAM grant.
 
 ## Validation
 
@@ -106,3 +111,4 @@ This checklist captures the requested migration and customization work for the c
 - [x] Run the repository test/check commands through CI.
 - [x] Verify the Firebase Hosting deployment completes for the initial implementation commit (`960298f`).
 - [x] Verify the corrective Instagram, sessions, and separate Traid tile deployment completes (`0488812`).
+- [x] Confirm CI can authenticate the configured Stripe secret successfully.
