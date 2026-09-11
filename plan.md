@@ -40,5 +40,5 @@ This checklist captures the requested migration and customization work for the c
 - [x] Verify the generated JS parses successfully.
 - [x] Verify all required links are present exactly once in the root renderer configuration.
 - [x] Verify replacement image dimensions/formats match the renderer's expected crops.
-- [ ] Run the repository test/check commands through CI.
-- [ ] Verify the Firebase Hosting deployment completes for the final commit.
+- [x] Run the repository test/check commands through CI.
+- [x] Verify the Firebase Hosting deployment completes for the implementation commit (`960298f`).
