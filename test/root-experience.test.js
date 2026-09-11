@@ -43,7 +43,6 @@ test("root home-screen links use the requested destinations", async () => {
   for (const url of [
     "/code",
     "https://exempliph.ai/",
-    "https://instagram.com/keiazo",
     "https://asaday.co/consultation",
     "https://traid.ing/",
     "https://tiktok.com/ozaiek",
@@ -56,6 +55,12 @@ test("root home-screen links use the requested destinations", async () => {
       `${url} should occur exactly once`,
     );
   }
+  assert.equal(
+    source.split("https://instagram.com/keiazo").length - 1,
+    2,
+    "Instagram should link both the app icon and built-by credit",
+  );
+  assert.doesNotMatch(source, /https:\/\/x\.com\/SesamPicr/);
 });
 
 test("replacement icons and wallpaper have renderer-safe dimensions", async () => {
