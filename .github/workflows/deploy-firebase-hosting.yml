@@ -57,7 +57,9 @@ jobs:
         run: |
           INSTANCE_NAME="${FIREBASE_PROJECT_ID}-default-rtdb"
           if ! npx --yes firebase-tools database:get / --instance "$INSTANCE_NAME" --project "$FIREBASE_PROJECT_ID" >/dev/null 2>&1; then
-            npx --yes firebase-tools database:instances:create "$INSTANCE_NAME" --location us-central1 --project "$FIREBASE_PROJECT_ID" --non-interactive
+            cp database.rules.json "$RUNNER_TEMP/presence-database.rules.json"
+            npx --yes firebase-tools init database --project "$FIREBASE_PROJECT_ID" --non-interactive
+            cp "$RUNNER_TEMP/presence-database.rules.json" database.rules.json
           fi
           npx --yes firebase-tools deploy --only database --project "$FIREBASE_PROJECT_ID" --non-interactive
 
