@@ -26,7 +26,9 @@ void main() {
   float horizontalStretch = 1.0 + amount * u_horizontalStretch * ramp;
   float x = anchorX + (a_position.x - anchorX) * horizontalStretch;
   float verticalScale = max(0.05, 1.0 - amount * u_verticalCompression * ramp);
-  float directionalSkew = -u_tilt * u_perspectiveSkew * ramp;
+  // Vertical movement is direction-independent: left and right tilts mirror
+  // only the horizontal anchor, not the sign of the Y-axis displacement.
+  float directionalSkew = -amount * u_perspectiveSkew * ramp;
   float baseY = a_position.y * u_planeHeight;
   // Displacement is expressed as a fraction of the viewport height. NDC spans
   // two units vertically, so multiply by two while preserving the anchor edge.
