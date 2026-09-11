@@ -717,3 +717,159 @@ dialog[aria-labelledby="fullscreen-help-title"] button {
     height: 92dvh;
   }
 }
+
+
+/* High-energy desktop gradient field. */
+@media (hover: hover) and (pointer: fine) {
+  .solo-shell.desktop {
+    background: #050609;
+  }
+
+  .solo-shell.desktop::before {
+    z-index: 1;
+    opacity: 0.13;
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.75) 48%, transparent 88%);
+    mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.75) 48%, transparent 88%);
+  }
+
+  .solo-shell.desktop::after {
+    z-index: 6;
+  }
+
+  .keiazo-gradient-field {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 71% 48%, rgba(255, 255, 255, 0.07), transparent 17%),
+      linear-gradient(110deg, rgba(2, 3, 8, 0.08), rgba(2, 3, 8, 0.5));
+  }
+
+  .keiazo-gradient-field::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(5, 6, 9, 0.36) 0%, transparent 35%, rgba(5, 6, 9, 0.12) 70%, rgba(5, 6, 9, 0.42) 100%),
+      linear-gradient(0deg, rgba(5, 6, 9, 0.38), transparent 26%, transparent 74%, rgba(5, 6, 9, 0.3));
+  }
+
+  .keiazo-gradient-blob {
+    position: absolute;
+    display: block;
+    border-radius: 43% 57% 61% 39% / 45% 38% 62% 55%;
+    filter: blur(clamp(52px, 5vw, 90px)) saturate(138%);
+    mix-blend-mode: screen;
+    will-change: transform;
+  }
+
+  .keiazo-gradient-blob--violet {
+    top: -31vw;
+    left: 29vw;
+    width: 58vw;
+    height: 58vw;
+    opacity: 0.68;
+    background:
+      radial-gradient(circle at 48% 54%, rgba(115, 75, 255, 0.94) 0%, rgba(75, 48, 230, 0.78) 32%, rgba(36, 39, 145, 0.3) 57%, transparent 72%);
+    animation: keiazo-blob-violet 16s ease-in-out infinite alternate;
+  }
+
+  .keiazo-gradient-blob--blue {
+    top: 13%;
+    right: -15vw;
+    width: 51vw;
+    height: 55vw;
+    opacity: 0.72;
+    background:
+      radial-gradient(circle at 38% 46%, rgba(33, 129, 255, 0.95) 0%, rgba(37, 72, 232, 0.72) 34%, rgba(25, 34, 116, 0.28) 62%, transparent 75%);
+    animation: keiazo-blob-blue 19s ease-in-out infinite alternate;
+  }
+
+  .keiazo-gradient-blob--cyan {
+    bottom: -28vw;
+    left: 18vw;
+    width: 49vw;
+    height: 49vw;
+    opacity: 0.52;
+    background:
+      radial-gradient(circle at 56% 34%, rgba(27, 229, 224, 0.9) 0%, rgba(20, 137, 211, 0.62) 34%, rgba(10, 66, 116, 0.2) 61%, transparent 75%);
+    animation: keiazo-blob-cyan 21s ease-in-out infinite alternate;
+  }
+
+  .keiazo-gradient-blob--ember {
+    right: -13vw;
+    bottom: -31vw;
+    width: 59vw;
+    height: 59vw;
+    opacity: 0.7;
+    background:
+      radial-gradient(circle at 39% 35%, rgba(255, 129, 43, 0.93) 0%, rgba(238, 54, 130, 0.75) 27%, rgba(128, 33, 178, 0.42) 52%, transparent 73%);
+    animation: keiazo-blob-ember 17s ease-in-out infinite alternate;
+  }
+
+  .keiazo-desktop-story {
+    padding-left: 26px;
+  }
+
+  .keiazo-desktop-story::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 1px;
+    background: linear-gradient(180deg, #8d74ff, rgba(68, 192, 255, 0.3), transparent 88%);
+    box-shadow: 0 0 18px rgba(114, 101, 255, 0.55);
+  }
+
+  .keiazo-desktop-story h1 em {
+    color: transparent;
+    background: linear-gradient(100deg, #f4f2ff 3%, #9b8cff 39%, #55c6ff 75%, #dffcff 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-stroke: 0;
+    filter: drop-shadow(0 12px 34px rgba(86, 101, 255, 0.2));
+  }
+
+  .keiazo-desktop-launch {
+    background: linear-gradient(105deg, #ffffff 0%, #e7e7ff 53%, #c5eaff 100%);
+    box-shadow:
+      0 13px 42px rgba(37, 66, 185, 0.24),
+      inset 0 1px 0 #fff;
+  }
+
+  .solo-shell.desktop .preview-controls {
+    background:
+      linear-gradient(135deg, rgba(111, 90, 255, 0.1), rgba(8, 10, 14, 0.5) 42%),
+      rgba(8, 10, 14, 0.52);
+    border-color: rgba(154, 164, 255, 0.2);
+  }
+}
+
+@keyframes keiazo-blob-violet {
+  from { transform: translate3d(-3vw, -1vh, 0) rotate(-8deg) scale(0.94); }
+  to { transform: translate3d(7vw, 8vh, 0) rotate(12deg) scale(1.08); }
+}
+
+@keyframes keiazo-blob-blue {
+  from { transform: translate3d(2vw, -6vh, 0) rotate(7deg) scale(1.04); }
+  to { transform: translate3d(-8vw, 7vh, 0) rotate(-13deg) scale(0.92); }
+}
+
+@keyframes keiazo-blob-cyan {
+  from { transform: translate3d(-5vw, 3vh, 0) rotate(-10deg) scale(0.94); }
+  to { transform: translate3d(8vw, -8vh, 0) rotate(14deg) scale(1.09); }
+}
+
+@keyframes keiazo-blob-ember {
+  from { transform: translate3d(5vw, 6vh, 0) rotate(12deg) scale(1.08); }
+  to { transform: translate3d(-7vw, -6vh, 0) rotate(-9deg) scale(0.92); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .keiazo-gradient-blob {
+    animation: none !important;
+  }
+}
