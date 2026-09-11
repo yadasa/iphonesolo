@@ -205,14 +205,25 @@
       vec3 tgApplyGlass(vec3 color, vec2 frag, vec4 rect, float radius) {
         vec2 center = rect.xy + rect.zw * 0.5;
         vec2 halfSize = rect.zw * 0.5;
+        if (halfSize.x <= 1.0 || halfSize.y <= 1.0) return color;
+
         vec2 p = frag - center;
         float r = min(radius, min(halfSize.x, halfSize.y) - 1.0);
         float sd = tgSdRoundedRect(p, halfSize, r);
         if (sd > 0.0) return color;
 
+        // Complete transmitted shell material from the church navbar. Keeping
+        // this tint is what makes dark scene samples read as illuminated glass
+        // instead of an opaque black card.
+        vec3 beige = vec3(0.93725, 0.91373, 0.81176);
+        const float beigeOpacity = 0.38;
+        vec3 tintedColor = mix(color, beige, beigeOpacity);
+
         float dist = -sd;
-        float edge = 1.0 - smoothstep(4.0, 16.0, dist);
-        if (edge <= 0.001) return color;
+        float strong = 4.0;
+        float featherEnd = 16.0;
+        float edge = 1.0 - smoothstep(strong, featherEnd, dist);
+        if (edge <= 0.001) return tintedColor;
 
         float eps = 0.65;
         vec2 grad;
@@ -221,12 +232,16 @@
         grad = normalize(grad + vec2(0.0001));
 
         float displacement = (5.0 + 13.0 * edge) * edge;
-        vec3 glass = tgBlurredScene(frag - grad * displacement);
+        vec2 refractedPx = frag - grad * displacement;
+        vec3 glass = tgBlurredScene(refractedPx);
+
         float rim = 1.0 - smoothstep(0.0, 5.0, dist);
         float light = max(0.0, dot(grad, normalize(vec2(-0.55, -0.83))));
         glass += vec3(1.0) * rim * (0.18 + light * 0.42);
-        glass = mix(glass, vec3(0.95, 0.98, 1.0), 0.075);
-        return glass;
+        glass = mix(glass, vec3(0.95, 0.98, 1.0), 0.075 * edge);
+        glass = mix(glass, beige, beigeOpacity);
+
+        return mix(tintedColor, glass, edge);
       }
 
       void main() {
