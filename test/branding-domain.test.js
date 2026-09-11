@@ -42,7 +42,7 @@ test("deployment verifies the custom iphonesolo.com domain", async () => {
   assert.match(firebase, /"value": "no-store,max-age=0"/);
 });
 
-test("all entry points use the split Apple favicon", async () => {
+test("all entry points use the iPhone Solo favicon and social image", async () => {
   const [root, code, testing, experiment, favicon] = await Promise.all([
     readFile("public/index.html", "utf8"),
     readFile("public/code/index.html", "utf8"),
@@ -52,9 +52,13 @@ test("all entry points use the split Apple favicon", async () => {
   ]);
 
   for (const html of [root, code, testing, experiment]) {
-    assert.match(html, /rel="icon"[^>]+href="\/favicon\.svg\?v=20260911-1"/);
+    assert.match(html, /rel="icon"[^>]+href="\/favicon\.svg\?v=20260911-2"/);
+    assert.match(html, /https:\/\/iphonesolo\.com\/og-image\.jpg/);
   }
+
+  assert.match(code, /<img class="brand-mark" src="\/favicon\.svg\?v=20260911-2"/);
   assert.match(favicon, /id="apple-mark"/);
   assert.match(favicon, /id="left-half"/);
   assert.match(favicon, /id="right-half"/);
+  assert.match(favicon, /id="dissolve-mask"/);
 });
