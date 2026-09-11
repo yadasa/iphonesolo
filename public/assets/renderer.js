@@ -113,7 +113,9 @@ function compile(gl, type, source) {
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    throw new Error(gl.getShaderInfoLog(shader) || "Shader compilation failed.");
+    const message = gl.getShaderInfoLog(shader) || "Shader compilation failed.";
+    gl.deleteShader(shader);
+    throw new Error(message);
   }
   return shader;
 }
@@ -121,13 +123,18 @@ function compile(gl, type, source) {
 export class FoldRenderer {
   constructor(canvas) {
     this.canvas = canvas;
-    this.gl = canvas.getContext("webgl2", { alpha: false, antialias: true, powerPreference: "high-performance" });
+    this.contextOptions = { alpha: false, antialias: true, powerPreference: "high-performance" };
+    this.gl = canvas.getContext("webgl2", this.contextOptions);
     if (!this.gl) throw new Error("This experience needs WebGL 2.");
-    this.program = this.createProgram();
-    this.locations = this.cacheLocations();
-    this.texture = this.gl.createTexture();
+
+    this.program = null;
+    this.locations = null;
+    this.texture = null;
+    this.geometryBuffer = null;
     this.hasTexture = false;
     this.video = null;
+    this.videoFrameSource = null;
+    this.videoFrameUpdater = null;
     this.videoFrameReady = false;
     this.videoFrameHandle = null;
     this.lastVideoTime = -1;
@@ -139,24 +146,71 @@ export class FoldRenderer {
     this.settings = { ...DEFAULT_RENDER_SETTINGS };
     this.blurPairs = 0;
     this.blurWeights = new Float32Array(33);
+    this.contextLost = false;
+
+    this.handleContextLost = event => {
+      event.preventDefault();
+      this.contextLost = true;
+      this.stopVideoFrameTracking();
+      this.canvas.dispatchEvent(new CustomEvent("foldrenderercontextlost"));
+    };
+    this.handleContextRestored = () => {
+      try {
+        this.contextLost = false;
+        this.initializeResources();
+        this.resize();
+        this.canvas.dispatchEvent(new CustomEvent("foldrenderercontextrestored"));
+      } catch (error) {
+        this.contextLost = true;
+        this.canvas.dispatchEvent(new CustomEvent("foldrenderercontextrestorefailed", { detail: error }));
+      }
+    };
+    canvas.addEventListener("webglcontextlost", this.handleContextLost, false);
+    canvas.addEventListener("webglcontextrestored", this.handleContextRestored, false);
+
     this.updateBlurKernel(this.settings.gaussianBlurSamples);
-    this.dirty = true;
-    this.setupGeometry();
+    this.initializeResources();
     this.resize();
     this.resizeObserver = new ResizeObserver(() => {
+      if (this.contextLost) return;
       this.resize();
       this.dirty = true;
     });
     this.resizeObserver.observe(canvas);
   }
 
+  initializeResources() {
+    this.stopVideoFrameTracking();
+    this.program = this.createProgram();
+    this.locations = this.cacheLocations();
+    this.texture = null;
+    this.hasTexture = false;
+    this.video = null;
+    this.videoFrameSource = null;
+    this.videoFrameUpdater = null;
+    this.videoFrameReady = false;
+    this.lastVideoTime = -1;
+    this.lastFold = Number.NaN;
+    this.lastSide = Number.NaN;
+    this.setupGeometry();
+    this.dirty = true;
+  }
+
   createProgram() {
     const gl = this.gl;
+    const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
+    const fragment = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
     const program = gl.createProgram();
-    gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER));
-    gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER));
+    gl.attachShader(program, vertex);
+    gl.attachShader(program, fragment);
     gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) || "Shader linking failed.");
+    gl.deleteShader(vertex);
+    gl.deleteShader(fragment);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const message = gl.getProgramInfoLog(program) || "Shader linking failed.";
+      gl.deleteProgram(program);
+      throw new Error(message);
+    }
     return program;
   }
 
@@ -187,6 +241,72 @@ export class FoldRenderer {
       blurPairs: uniform("u_blurPairs"),
       blurWeights: uniform("u_blurWeights[0]")
     };
+  }
+
+  isContextLost() {
+    return this.contextLost || this.gl.isContextLost();
+  }
+
+  getMaxTextureSize() {
+    if (this.isContextLost()) return 0;
+    return this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE) || 0;
+  }
+
+  clearGlErrors() {
+    const gl = this.gl;
+    while (gl.getError() !== gl.NO_ERROR) {
+      // Drain stale errors so a staging upload can be validated independently.
+    }
+  }
+
+  createStagedTexture(source, width, height) {
+    const gl = this.gl;
+    if (this.isContextLost()) throw new Error("The graphics context is unavailable.");
+    if (!source || width <= 0 || height <= 0) throw new Error("Media does not contain a renderable frame.");
+
+    const maxTextureSize = this.getMaxTextureSize();
+    if (maxTextureSize && (width > maxTextureSize || height > maxTextureSize)) {
+      throw new Error(`Media frame ${width}×${height} exceeds this device's ${maxTextureSize}px GPU texture limit.`);
+    }
+
+    const texture = gl.createTexture();
+    if (!texture) throw new Error("Could not allocate a GPU texture.");
+
+    this.clearGlErrors();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    try {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    } catch (error) {
+      gl.deleteTexture(texture);
+      throw error;
+    }
+
+    if (this.isContextLost()) {
+      throw new Error("The graphics context was lost while uploading media.");
+    }
+    const error = gl.getError();
+    if (error !== gl.NO_ERROR) {
+      gl.deleteTexture(texture);
+      throw new Error(`GPU texture upload failed (WebGL error 0x${error.toString(16)}).`);
+    }
+    return texture;
+  }
+
+  commitTexture(texture, width, height) {
+    const gl = this.gl;
+    const previousTexture = this.texture;
+    this.texture = texture;
+    this.mediaWidth = width;
+    this.mediaHeight = height;
+    this.hasTexture = true;
+    this.dirty = true;
+    if (previousTexture && previousTexture !== texture && !this.isContextLost()) gl.deleteTexture(previousTexture);
   }
 
   setSettings(settings) {
@@ -229,8 +349,8 @@ export class FoldRenderer {
     }
     const vertices = new Float32Array(data);
     this.vertexCount = segments * 6;
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    this.geometryBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.geometryBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
     gl.useProgram(this.program);
     const { position, uv } = this.locations;
@@ -241,6 +361,7 @@ export class FoldRenderer {
   }
 
   resize() {
+    if (this.isContextLost()) return;
     const dpr = Math.min(devicePixelRatio || 1, 2);
     const width = Math.max(1, Math.round(this.canvas.clientWidth * dpr));
     const height = Math.max(1, Math.round(this.canvas.clientHeight * dpr));
@@ -262,55 +383,75 @@ export class FoldRenderer {
   trackVideoFrames(video) {
     if (!("requestVideoFrameCallback" in video)) return;
     const markFrame = () => {
+      if (video !== this.video || this.contextLost) return;
       this.videoFrameReady = true;
       this.videoFrameHandle = video.requestVideoFrameCallback(markFrame);
     };
     this.videoFrameHandle = video.requestVideoFrameCallback(markFrame);
   }
 
-  setImage(image) {
-    const gl = this.gl;
+  clearVideoBinding() {
     this.stopVideoFrameTracking();
-    gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
     this.video = null;
-    this.mediaWidth = image.naturalWidth;
-    this.mediaHeight = image.naturalHeight;
-    this.hasTexture = true;
-    this.dirty = true;
+    this.videoFrameSource = null;
+    this.videoFrameUpdater = null;
+    this.videoFrameReady = false;
+    this.lastVideoTime = -1;
   }
 
-  setVideo(video) {
-    const gl = this.gl;
-    this.stopVideoFrameTracking();
-    gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+  setImage(image) {
+    const texture = this.createStagedTexture(image, image.naturalWidth, image.naturalHeight);
+    this.clearVideoBinding();
+    this.commitTexture(texture, image.naturalWidth, image.naturalHeight);
+  }
+
+  setVideo(video, { frameSource = video, width = video.videoWidth, height = video.videoHeight, updateFrame = null } = {}) {
+    if (video.paused) throw new Error("Video must be playing before it can be uploaded to WebGL.");
+    if (typeof updateFrame === "function") updateFrame();
+    const texture = this.createStagedTexture(frameSource, width, height);
+
+    this.clearVideoBinding();
+    this.commitTexture(texture, width, height);
     this.video = video;
-    this.mediaWidth = video.videoWidth;
-    this.mediaHeight = video.videoHeight;
-    this.hasTexture = true;
+    this.videoFrameSource = frameSource;
+    this.videoFrameUpdater = updateFrame;
     this.videoFrameReady = true;
-    this.lastVideoTime = -1;
+    this.lastVideoTime = video.currentTime;
     this.trackVideoFrames(video);
-    this.dirty = true;
+  }
+
+  updateVideoTexture() {
+    const gl = this.gl;
+    if (!this.video || !this.texture || this.isContextLost()) return false;
+    if (this.video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return false;
+
+    try {
+      if (typeof this.videoFrameUpdater === "function") this.videoFrameUpdater();
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      this.clearGlErrors();
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.videoFrameSource || this.video);
+      if (this.isContextLost()) return false;
+      const error = gl.getError();
+      if (error !== gl.NO_ERROR) throw new Error(`Video frame upload failed (WebGL error 0x${error.toString(16)}).`);
+      this.videoFrameReady = false;
+      this.lastVideoTime = this.video.currentTime;
+      return true;
+    } catch (error) {
+      this.videoFrameReady = false;
+      this.stopVideoFrameTracking();
+      this.canvas.dispatchEvent(new CustomEvent("foldrenderermediaerror", { detail: error }));
+      return false;
+    }
   }
 
   render(fold, side = this.side) {
     const gl = this.gl;
+    if (this.isContextLost() || !this.program || !this.locations) return false;
+
     this.side = side || 1;
     const signedTilt = this.side * Math.min(1, Math.max(0, fold / 82)) * this.settings.rotationInfluence;
     const supportsFrameCallback = this.video && "requestVideoFrameCallback" in this.video;
-    const fallbackVideoFrame = this.video && !supportsFrameCallback && this.video.currentTime !== this.lastVideoTime;
+    const fallbackVideoFrame = this.video && !supportsFrameCallback && !this.video.paused && this.video.currentTime !== this.lastVideoTime;
     const hasFreshVideoFrame = Boolean(this.video && (this.videoFrameReady || fallbackVideoFrame));
     const transformChanged = Math.abs(signedTilt - this.lastFold) > 0.0003;
     if (!this.dirty && !transformChanged && !hasFreshVideoFrame) return false;
@@ -336,11 +477,9 @@ export class FoldRenderer {
     gl.uniform1i(this.locations.hasTexture, this.hasTexture);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    if (hasFreshVideoFrame && this.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.video);
-      this.videoFrameReady = false;
-      this.lastVideoTime = this.video.currentTime;
-    }
+
+    if (hasFreshVideoFrame) this.updateVideoTexture();
+
     const viewportAspect = this.canvas.width / this.canvas.height;
     const mediaAspect = this.mediaWidth / this.mediaHeight;
     // Width-fit at neutral: the full media width maps to the full viewport.

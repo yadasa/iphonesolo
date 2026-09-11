@@ -24,22 +24,31 @@ const settingsJsonWrap = document.querySelector("#settings-json-wrap");
 const settingsJson = document.querySelector("#settings-json");
 const copySettingsButton = document.querySelector("#copy-settings");
 
+const TAP_MOVE_THRESHOLD_PX = 10;
+const VIDEO_READY_TIMEOUT_MS = 15000;
+const SAFE_VIDEO_LONG_EDGE = 2048;
+const VIDEO_EXTENSIONS = /\.(mp4|m4v|mov|webm|ogv|ogg)$/i;
+const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|heic|heif)$/i;
+
 let renderer;
-let imageUrl;
 let targetTilt = 0;
 let renderedTilt = 0;
 let previousTime = performance.now();
 let animationFrameId;
 let dragging = false;
-let pointerStart = 0;
+let pointerStartX = 0;
+let pointerStartY = 0;
+let pointerMoved = false;
 let tiltStart = 0;
 let toastTimer;
-let activeVideo;
+let activeVideo = null;
+let activeMedia = null;
 let mediaReady = false;
 let hasInteracted = false;
 let installPromptScheduled = false;
 let renderSettings = { ...DEFAULT_RENDER_SETTINGS };
 let editStart = null;
+let restoreInFlight = null;
 const undoStack = [];
 const redoStack = [];
 
@@ -132,52 +141,251 @@ function stopRendering() {
   animationFrameId = null;
 }
 
+function isVideoFile(file) {
+  return Boolean(file && (file.type?.startsWith("video/") || VIDEO_EXTENSIONS.test(file.name || "")));
+}
+
+function isImageFile(file) {
+  return Boolean(file && (file.type?.startsWith("image/") || IMAGE_EXTENSIONS.test(file.name || "")));
+}
+
+function waitForVideoMetadata(video) {
+  if (video.readyState >= HTMLMediaElement.HAVE_METADATA && video.videoWidth > 0 && video.videoHeight > 0) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(timer);
+      video.removeEventListener("loadedmetadata", onMetadata);
+      video.removeEventListener("error", onError);
+    };
+    const finish = callback => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+    const onMetadata = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) finish(resolve);
+    };
+    const onError = () => finish(() => reject(new Error("That video could not be decoded by this browser.")));
+    const timer = setTimeout(() => finish(() => reject(new Error("This video took too long to load its metadata."))), VIDEO_READY_TIMEOUT_MS);
+    video.addEventListener("loadedmetadata", onMetadata);
+    video.addEventListener("error", onError, { once: true });
+  });
+}
+
+function waitForFirstVideoFrame(video) {
+  if ("requestVideoFrameCallback" in video) {
+    return new Promise((resolve, reject) => {
+      let handle = null;
+      const timer = setTimeout(() => {
+        if (handle != null && "cancelVideoFrameCallback" in video) video.cancelVideoFrameCallback(handle);
+        reject(new Error("The video decoder did not produce a frame in time."));
+      }, VIDEO_READY_TIMEOUT_MS);
+      handle = video.requestVideoFrameCallback(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    const started = performance.now();
+    const check = () => {
+      if (video.error) {
+        reject(new Error("That video could not be decoded by this browser."));
+        return;
+      }
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+        resolve();
+        return;
+      }
+      if (performance.now() - started >= VIDEO_READY_TIMEOUT_MS) {
+        reject(new Error("The video decoder did not produce a frame in time."));
+        return;
+      }
+      requestAnimationFrame(check);
+    };
+    check();
+  });
+}
+
+function disposeVideo(video) {
+  if (!video) return;
+  try { video.pause(); } catch {}
+  video.removeAttribute("src");
+  try { video.load(); } catch {}
+}
+
+function releaseMedia(media) {
+  if (!media) return;
+  if (media.type === "video") disposeVideo(media.video);
+  if (media.url) URL.revokeObjectURL(media.url);
+}
+
+function createVideoFramePlan(video) {
+  const sourceWidth = video.videoWidth;
+  const sourceHeight = video.videoHeight;
+  const sourceLongEdge = Math.max(sourceWidth, sourceHeight);
+  const maxTextureSize = renderer.getMaxTextureSize() || SAFE_VIDEO_LONG_EDGE;
+  const displayLongEdge = Math.max(canvas.width || 1, canvas.height || 1);
+  const displayTarget = Math.max(720, Math.ceil(displayLongEdge * 1.25));
+  const workingLongEdge = Math.min(sourceLongEdge, SAFE_VIDEO_LONG_EDGE, maxTextureSize, displayTarget);
+  const textureScale = Math.min(1, maxTextureSize / sourceWidth, maxTextureSize / sourceHeight);
+  const displayScale = Math.min(1, workingLongEdge / sourceLongEdge);
+  const scale = Math.min(textureScale, displayScale);
+
+  if (scale >= 0.999) {
+    return {
+      frameSource: video,
+      width: sourceWidth,
+      height: sourceHeight,
+      updateFrame: null,
+      downscaled: false
+    };
+  }
+
+  const frameCanvas = document.createElement("canvas");
+  frameCanvas.width = Math.max(2, Math.round(sourceWidth * scale));
+  frameCanvas.height = Math.max(2, Math.round(sourceHeight * scale));
+  const frameContext = frameCanvas.getContext("2d", { alpha: false, desynchronized: true });
+  if (!frameContext) throw new Error("Could not create a safe video frame buffer.");
+
+  const updateFrame = () => {
+    frameContext.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
+  };
+  updateFrame();
+
+  return {
+    frameSource: frameCanvas,
+    width: frameCanvas.width,
+    height: frameCanvas.height,
+    updateFrame,
+    downscaled: true
+  };
+}
+
+async function prepareVideo(file, url) {
+  const video = document.createElement("video");
+  video.muted = true;
+  video.defaultMuted = true;
+  video.loop = true;
+  video.playsInline = true;
+  video.preload = "metadata";
+  video.disablePictureInPicture = true;
+  video.setAttribute("playsinline", "");
+  video.setAttribute("webkit-playsinline", "");
+  video.src = url;
+
+  try {
+    await waitForVideoMetadata(video);
+    try {
+      await video.play();
+    } catch {
+      throw new Error("Video playback was blocked before a safe frame could be created. Tap and choose the video again.");
+    }
+    await waitForFirstVideoFrame(video);
+
+    const framePlan = createVideoFramePlan(video);
+    return { type: "video", video, url, shouldPlay: true, ...framePlan };
+  } catch (error) {
+    disposeVideo(video);
+    throw error;
+  }
+}
+
+function commitMedia(nextMedia) {
+  const previousMedia = activeMedia;
+  activeMedia = nextMedia;
+  activeVideo = nextMedia.type === "video" ? nextMedia.video : null;
+  releaseMedia(previousMedia);
+  mediaReady = true;
+  hint.hidden = true;
+  app.dataset.ready = "true";
+  targetTilt = 0;
+  renderedTilt = 0;
+}
+
 async function loadFile(file) {
-  if (!file || (!file.type.startsWith("image/") && !file.type.startsWith("video/"))) {
+  const videoFile = isVideoFile(file);
+  const imageFile = isImageFile(file);
+  if (!file || (!imageFile && !videoFile)) {
     showToast("Choose a supported photo or video file.");
     return;
   }
+
   const nextUrl = URL.createObjectURL(file);
+  let candidateVideo = null;
   try {
-    if (activeVideo) {
-      activeVideo.pause();
-      activeVideo.removeAttribute("src");
-      activeVideo.load();
-      activeVideo = null;
-    }
-    if (file.type.startsWith("video/")) {
-      const video = document.createElement("video");
-      video.muted = true;
-      video.loop = true;
-      video.playsInline = true;
-      video.preload = "auto";
-      video.src = nextUrl;
-      await new Promise((resolve, reject) => {
-        video.addEventListener("loadeddata", resolve, { once: true });
-        video.addEventListener("error", reject, { once: true });
-      });
-      renderer.setVideo(video);
-      activeVideo = video;
-      video.play().catch(() => showToast("Tap the screen to start video playback."));
+    if (videoFile) {
+      const nextMedia = await prepareVideo(file, nextUrl);
+      candidateVideo = nextMedia.video;
+      renderer.setVideo(nextMedia.video, nextMedia);
+      commitMedia(nextMedia);
+      if (nextMedia.downscaled) showToast(`Large video optimized to ${nextMedia.width}×${nextMedia.height} for stable playback.`);
     } else {
       const image = new Image();
       image.decoding = "async";
       image.src = nextUrl;
       await image.decode();
       renderer.setImage(image);
+      commitMedia({ type: "image", image, url: nextUrl });
     }
-    if (imageUrl) URL.revokeObjectURL(imageUrl);
-    imageUrl = nextUrl;
-    mediaReady = true;
-    hint.hidden = true;
-    app.dataset.ready = "true";
-    targetTilt = 0;
-    renderedTilt = 0;
-  } catch {
+  } catch (error) {
+    if (candidateVideo) disposeVideo(candidateVideo);
     URL.revokeObjectURL(nextUrl);
-    showToast("That media file could not be played in this browser.");
+    if (renderer?.isContextLost()) {
+      showToast("The graphics engine restarted after that media failed. Your previous media will be restored automatically.");
+    } else {
+      showToast(error?.message || "That media file could not be played in this browser.");
+    }
   } finally {
     picker.value = "";
+  }
+}
+
+async function restoreActiveMedia() {
+  if (restoreInFlight) return restoreInFlight;
+  restoreInFlight = (async () => {
+    if (!activeMedia || renderer.isContextLost()) return;
+    renderer.setSettings(renderSettings);
+
+    if (activeMedia.type === "image") {
+      renderer.setImage(activeMedia.image);
+      return;
+    }
+
+    const video = activeMedia.video;
+    const shouldRemainPaused = !activeMedia.shouldPlay;
+    if (video.paused) await video.play();
+    await waitForFirstVideoFrame(video);
+    if (typeof activeMedia.updateFrame === "function") activeMedia.updateFrame();
+    renderer.setVideo(video, activeMedia);
+    if (shouldRemainPaused) video.pause();
+  })().finally(() => {
+    restoreInFlight = null;
+  });
+  return restoreInFlight;
+}
+
+async function toggleVideoPlayback() {
+  if (!activeMedia || activeMedia.type !== "video") return;
+  const video = activeMedia.video;
+  if (!video.paused && !video.ended) {
+    activeMedia.shouldPlay = false;
+    video.pause();
+    return;
+  }
+
+  try {
+    activeMedia.shouldPlay = true;
+    await video.play();
+    if (!renderer.isContextLost() && !renderer.video) await restoreActiveMedia();
+  } catch {
+    activeMedia.shouldPlay = false;
+    showToast("Playback could not start. Try tapping the video again.");
   }
 }
 
@@ -301,38 +509,81 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 canvas.addEventListener("pointerdown", event => {
-  activeVideo?.play().catch(() => {});
   dragging = true;
-  pointerStart = event.clientX;
+  pointerMoved = false;
+  pointerStartX = event.clientX;
+  pointerStartY = event.clientY;
   tiltStart = targetTilt;
   canvas.setPointerCapture(event.pointerId);
 });
 
 canvas.addEventListener("pointermove", event => {
   if (!dragging) return;
-  const delta = (event.clientX - pointerStart) / Math.max(1, innerWidth);
+  const deltaX = event.clientX - pointerStartX;
+  const deltaY = event.clientY - pointerStartY;
+  if (Math.hypot(deltaX, deltaY) >= TAP_MOVE_THRESHOLD_PX) pointerMoved = true;
+  const delta = deltaX / Math.max(1, innerWidth);
   targetTilt = clamp(tiltStart + delta * 190, -180, 180);
   if (Math.abs(delta) > .04) hasInteracted = true;
 });
 
 canvas.addEventListener("pointerup", event => {
+  const wasTap = dragging && !pointerMoved;
   dragging = false;
-  canvas.releasePointerCapture(event.pointerId);
+  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  if (wasTap) toggleVideoPlayback();
 });
 
-document.addEventListener("visibilitychange", () => {
+canvas.addEventListener("pointercancel", event => {
+  dragging = false;
+  pointerMoved = false;
+  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+});
+
+canvas.addEventListener("foldrenderercontextlost", () => {
+  stopRendering();
+  if (activeMedia?.type === "video") activeMedia.video.pause();
+  showToast("Graphics context reset. Restoring your media…");
+});
+
+canvas.addEventListener("foldrenderercontextrestored", async () => {
+  try {
+    await restoreActiveMedia();
+    showToast("Graphics restored.");
+  } catch {
+    showToast("Graphics recovered, but the last media could not be restored. Choose another file.");
+  } finally {
+    startRendering();
+  }
+});
+
+canvas.addEventListener("foldrenderercontextrestorefailed", () => {
+  showToast("Graphics could not restart automatically. Reload the app to continue.");
+});
+
+canvas.addEventListener("foldrenderermediaerror", event => {
+  if (activeMedia?.type === "video") {
+    activeMedia.shouldPlay = false;
+    activeMedia.video.pause();
+  }
+  showToast(event.detail?.message || "Video rendering stopped, but the app is still usable.");
+});
+
+document.addEventListener("visibilitychange", async () => {
   if (document.hidden) {
     stopRendering();
     activeVideo?.pause();
     return;
   }
   if (tracker.listening) tracker.recalibrate();
-  activeVideo?.play().catch(() => {});
+  if (activeMedia?.type === "video" && activeMedia.shouldPlay) {
+    try { await activeMedia.video.play(); } catch {}
+  }
   startRendering();
 });
 
 window.addEventListener("orientationchange", () => tracker.recalibrate(), { passive: true });
-window.addEventListener("beforeunload", () => { if (imageUrl) URL.revokeObjectURL(imageUrl); });
+window.addEventListener("beforeunload", () => releaseMedia(activeMedia));
 
 for (const close of document.querySelectorAll(".dialog-close, .dialog-done")) {
   close.addEventListener("click", () => {
