@@ -1,17 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Vertically split apple">
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="iPhone Solo dissolving Apple mark">
   <defs>
-    <clipPath id="left-half"><rect width="31.5" height="64" /></clipPath>
-    <clipPath id="right-half"><rect x="32.5" width="31.5" height="64" /></clipPath>
+    <radialGradient id="bg" cx="28%" cy="18%" r="90%">
+      <stop offset="0" stop-color="#252932"/>
+      <stop offset="0.42" stop-color="#0d0f13"/>
+      <stop offset="1" stop-color="#030405"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.56" stop-color="#e8e9ec"/>
+      <stop offset="1" stop-color="#a9adb5"/>
+    </linearGradient>
+    <linearGradient id="fade-right" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="1"/>
+      <stop offset="0.35" stop-color="white" stop-opacity="0.9"/>
+      <stop offset="0.72" stop-color="white" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="dissolve-mask">
+      <rect x="37" y="0" width="27" height="64" fill="url(#fade-right)"/>
+    </mask>
+    <clipPath id="left-half"><rect width="40" height="64" /></clipPath>
+    <clipPath id="right-half"><rect x="40" width="24" height="64" /></clipPath>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.15"/>
+    </filter>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="1.8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
     <path id="apple-mark" d="M32 21.1c-3.3 0-6.2-2.4-10.5-2.4C12.9 18.7 7 25.6 7 34c0 7.6 5.5 20.8 13.1 20.8 4 0 6.7-2.8 11.9-2.8s7.8 2.8 11.9 2.8C51.5 54.8 57 41.6 57 34c0-8.4-5.9-15.3-14.5-15.3-4.3 0-7.2 2.4-10.5 2.4Z" />
   </defs>
-  <rect width="64" height="64" rx="14" fill="#08090c" />
-  <g clip-path="url(#left-half)" fill="#ffffff">
-    <use href="#apple-mark" />
-    <path d="M31.2 17.1c.3-6.2 4-10.2 10.7-11.3-.2 6-4 10.5-10.7 11.3Z" />
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <circle cx="31.5" cy="31.5" r="27" fill="none" stroke="#dfe3ea" stroke-opacity="0.16" stroke-width="0.8"/>
+  <path d="M7.5 19.5A27 27 0 0 1 52 9" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="1.1" filter="url(#glow)"/>
+  <g clip-path="url(#left-half)" fill="url(#metal)">
+    <use href="#apple-mark"/>
+    <path d="M31.2 17.1c.3-6.2 4-10.2 10.7-11.3-.2 6-4 10.5-10.7 11.3Z"/>
   </g>
-  <g clip-path="url(#right-half)" fill="#aeb4bf">
-    <use href="#apple-mark" />
-    <path d="M31.2 17.1c.3-6.2 4-10.2 10.7-11.3-.2 6-4 10.5-10.7 11.3Z" />
+  <g clip-path="url(#right-half)" mask="url(#dissolve-mask)" fill="#d8dbe1" filter="url(#soft)" opacity="0.9">
+    <use href="#apple-mark"/>
+    <path d="M31.2 17.1c.3-6.2 4-10.2 10.7-11.3-.2 6-4 10.5-10.7 11.3Z"/>
   </g>
-  <circle cx="51.5" cy="26.5" r="6.4" fill="#08090c" />
+  <g fill="#f5f7fa" filter="url(#soft)">
+    <circle cx="42" cy="22" r="1.2" opacity="0.9"/>
+    <circle cx="45.2" cy="25" r="0.8" opacity="0.82"/>
+    <circle cx="48" cy="28.5" r="1" opacity="0.66"/>
+    <circle cx="43.5" cy="32" r="0.65" opacity="0.75"/>
+    <circle cx="50.8" cy="34" r="1.25" opacity="0.42"/>
+    <circle cx="46.8" cy="38" r="0.75" opacity="0.6"/>
+    <circle cx="52.5" cy="41" r="0.9" opacity="0.34"/>
+    <circle cx="43.7" cy="45.2" r="1.05" opacity="0.52"/>
+    <circle cx="49.5" cy="48" r="0.7" opacity="0.32"/>
+    <circle cx="55" cy="30" r="0.55" opacity="0.3"/>
+    <circle cx="56" cy="37" r="0.8" opacity="0.2"/>
+  </g>
+  <circle cx="51.5" cy="26.5" r="6.4" fill="#07080a"/>
 </svg>
