@@ -46,8 +46,9 @@ test("each paid Stripe Checkout Session can redeem exactly one archive response"
     readFile("functions/package.json", "utf8"),
   ]);
   assert.match(server, /downloadLedgerReady: true/);
-  assert.match(server, /firestore\.runTransaction/);
-  assert.match(server, /transaction\.create\(ref/);
+  assert.match(server, /database\.ref/);
+  assert.match(server, /\.transaction\(/);
+  assert.match(server, /result\.committed/);
   assert.match(server, /download_already_used/);
   assert.match(server, /X-Download-Redemption", "single-use"/);
   assert.match(server, /createHash\("sha256"\)/);
