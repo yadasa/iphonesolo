@@ -13,8 +13,6 @@ uniform float u_nonlinearFalloff;
 out vec2 v_uv;
 
 void main() {
-  // The edge the device tilts toward is fixed. Transformation strength grows
-  // continuously with distance from that anchor and is mirrored by direction.
   float amount = abs(u_tilt);
   float anchorX = u_tilt < 0.0 ? -1.0 : 1.0;
   float distanceFromAnchor = u_tilt < 0.0
@@ -26,15 +24,10 @@ void main() {
   float horizontalStretch = 1.0 + amount * u_horizontalStretch * ramp;
   float x = anchorX + (a_position.x - anchorX) * horizontalStretch;
   float verticalScale = max(0.05, 1.0 - amount * u_verticalCompression * ramp);
-  // Vertical movement is direction-independent: left and right tilts mirror
-  // only the horizontal anchor, not the sign of the Y-axis displacement.
   float directionalSkew = -amount * u_perspectiveSkew * ramp;
   float baseY = a_position.y * u_planeHeight;
-  // Displacement is expressed as a fraction of the viewport height. NDC spans
-  // two units vertically, so multiply by two while preserving the anchor edge.
   float y = baseY * verticalScale + directionalSkew + amount * u_verticalDisplacement * 2.0 * ramp;
-  vec2 projected = vec2(x, y);
-  gl_Position = vec4(projected, 0.0, 1.0);
+  gl_Position = vec4(vec2(x, y), 0.0, 1.0);
   v_uv = a_uv;
 }`;
 
@@ -43,6 +36,7 @@ precision highp float;
 uniform sampler2D u_texture;
 uniform bool u_hasTexture;
 uniform float u_tilt;
+uniform float u_rotationProgress;
 uniform vec2 u_uvScale;
 uniform vec2 u_uvOffset;
 uniform vec2 u_texelSize;
@@ -62,9 +56,11 @@ void main() {
     outColor = vec4(0.012, 0.014, 0.02, 1.0);
     return;
   }
+
   vec2 uv = v_uv * u_uvScale + u_uvOffset;
   float amount = abs(u_tilt);
   float distanceFromAnchor = u_tilt < 0.0 ? v_uv.x : 1.0 - v_uv.x;
+
   float blurGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), u_blurFalloff);
   if (u_nonlinearFalloff > 0.5) blurGradient = smoothstep(0.0, 1.0, blurGradient);
   float blurRadius = smoothstep(0.04, 1.0, amount) * blurGradient * u_blurSize * max(1.0, u_blurStrength);
@@ -82,10 +78,20 @@ void main() {
   }
   vec4 color = mix(sharp, blurred, min(u_blurStrength, 1.0));
 
-  float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), u_darknessFalloff);
+  // During the final 45 degrees (135–180) of physical rotation, move the
+  // gradient's virtual start point progressively beyond the anchored edge.
+  // This makes the gradient continue horizontally past the non-transformed
+  // edge instead of terminating at it. The geometry itself remains anchored.
+  float lateFlip = smoothstep(0.75, 1.0, clamp(u_rotationProgress, 0.0, 1.0));
+  float gradientOvershoot = 0.25 * lateFlip;
+  float stretchedShadowDistance = clamp(
+    (distanceFromAnchor + gradientOvershoot) / (1.0 + gradientOvershoot),
+    0.0,
+    1.0
+  );
+  float shadowGradient = pow(stretchedShadowDistance, u_darknessFalloff);
   if (u_nonlinearFalloff > 0.5) shadowGradient = smoothstep(0.0, 1.0, shadowGradient);
-  // Let the fold establish itself before the lighting starts to deepen, then
-  // bring the shade in more gradually through the late part of the rotation.
+
   float tiltShadow = smoothstep(0.20, 0.90, amount);
   float depthShade = min(0.83, tiltShadow * shadowGradient * u_darknessGradient);
   color.rgb *= 1.0 - depthShade;
@@ -95,8 +101,8 @@ void main() {
 export const DEFAULT_RENDER_SETTINGS = Object.freeze({
   horizontalStretch: 1.09,
   perspectiveSkew: 0.7,
-  verticalCompression: 1.35,
-  verticalDisplacement: 0.28,
+  verticalCompression: 1.18,
+  verticalDisplacement: 0.36,
   rotationInfluence: 1,
   transformFalloff: 1.03,
   darknessGradient: 2.21,
@@ -143,6 +149,7 @@ export class FoldRenderer {
     this.side = 1;
     this.lastFold = Number.NaN;
     this.lastSide = Number.NaN;
+    this.lastRotationProgress = Number.NaN;
     this.settings = { ...DEFAULT_RENDER_SETTINGS };
     this.blurPairs = 0;
     this.blurWeights = new Float32Array(33);
@@ -192,6 +199,7 @@ export class FoldRenderer {
     this.lastVideoTime = -1;
     this.lastFold = Number.NaN;
     this.lastSide = Number.NaN;
+    this.lastRotationProgress = Number.NaN;
     this.setupGeometry();
     this.dirty = true;
   }
@@ -221,6 +229,7 @@ export class FoldRenderer {
       position: gl.getAttribLocation(this.program, "a_position"),
       uv: gl.getAttribLocation(this.program, "a_uv"),
       tilt: uniform("u_tilt"),
+      rotationProgress: uniform("u_rotationProgress"),
       aspect: uniform("u_aspect"),
       planeHeight: uniform("u_planeHeight"),
       horizontalStretch: uniform("u_horizontalStretch"),
@@ -254,9 +263,7 @@ export class FoldRenderer {
 
   clearGlErrors() {
     const gl = this.gl;
-    while (gl.getError() !== gl.NO_ERROR) {
-      // Drain stale errors so a staging upload can be validated independently.
-    }
+    while (gl.getError() !== gl.NO_ERROR) {}
   }
 
   createStagedTexture(source, width, height) {
@@ -287,9 +294,7 @@ export class FoldRenderer {
       throw error;
     }
 
-    if (this.isContextLost()) {
-      throw new Error("The graphics context was lost while uploading media.");
-    }
+    if (this.isContextLost()) throw new Error("The graphics context was lost while uploading media.");
     const error = gl.getError();
     if (error !== gl.NO_ERROR) {
       gl.deleteTexture(texture);
@@ -343,8 +348,8 @@ export class FoldRenderer {
       const u0 = index / segments;
       const u1 = (index + 1) / segments;
       data.push(
-        x0, -1, u0, 1,  x1, -1, u1, 1,  x0, 1, u0, 0,
-        x0,  1, u0, 0,  x1, -1, u1, 1,  x1, 1, u1, 0
+        x0, -1, u0, 1, x1, -1, u1, 1, x0, 1, u0, 0,
+        x0, 1, u0, 0, x1, -1, u1, 1, x1, 1, u1, 0
       );
     }
     const vertices = new Float32Array(data);
@@ -409,7 +414,6 @@ export class FoldRenderer {
     if (video.paused) throw new Error("Video must be playing before it can be uploaded to WebGL.");
     if (typeof updateFrame === "function") updateFrame();
     const texture = this.createStagedTexture(frameSource, width, height);
-
     this.clearVideoBinding();
     this.commitTexture(texture, width, height);
     this.video = video;
@@ -444,22 +448,25 @@ export class FoldRenderer {
     }
   }
 
-  render(fold, side = this.side) {
+  render(fold, side = this.side, rotationProgress = 0) {
     const gl = this.gl;
     if (this.isContextLost() || !this.program || !this.locations) return false;
 
     this.side = side || 1;
+    const safeRotationProgress = Math.min(1, Math.max(0, rotationProgress));
     const signedTilt = this.side * Math.min(1, Math.max(0, fold / 82)) * this.settings.rotationInfluence;
     const supportsFrameCallback = this.video && "requestVideoFrameCallback" in this.video;
     const fallbackVideoFrame = this.video && !supportsFrameCallback && !this.video.paused && this.video.currentTime !== this.lastVideoTime;
     const hasFreshVideoFrame = Boolean(this.video && (this.videoFrameReady || fallbackVideoFrame));
     const transformChanged = Math.abs(signedTilt - this.lastFold) > 0.0003;
-    if (!this.dirty && !transformChanged && !hasFreshVideoFrame) return false;
+    const rotationChanged = Math.abs(safeRotationProgress - this.lastRotationProgress) > 0.0003;
+    if (!this.dirty && !transformChanged && !rotationChanged && !hasFreshVideoFrame) return false;
 
     gl.clearColor(0.012, 0.014, 0.02, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(this.program);
     gl.uniform1f(this.locations.tilt, signedTilt);
+    gl.uniform1f(this.locations.rotationProgress, safeRotationProgress);
     gl.uniform1f(this.locations.aspect, this.canvas.width / this.canvas.height);
     gl.uniform1f(this.locations.horizontalStretch, this.settings.horizontalStretch);
     gl.uniform1f(this.locations.verticalCompression, this.settings.verticalCompression);
@@ -482,9 +489,6 @@ export class FoldRenderer {
 
     const viewportAspect = this.canvas.width / this.canvas.height;
     const mediaAspect = this.mediaWidth / this.mediaHeight;
-    // Width-fit at neutral: the full media width maps to the full viewport.
-    // Aspect ratio is preserved geometrically, so excess height lives beyond
-    // the physical viewport instead of being discarded by cover-style UV crop.
     gl.uniform1f(this.locations.planeHeight, viewportAspect / mediaAspect);
     gl.uniform2f(this.locations.uvScale, 1, 1);
     gl.uniform2f(this.locations.uvOffset, 0, 0);
@@ -492,6 +496,7 @@ export class FoldRenderer {
     gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
     this.lastFold = signedTilt;
     this.lastSide = this.side;
+    this.lastRotationProgress = safeRotationProgress;
     this.dirty = false;
     return true;
   }
