@@ -56,6 +56,74 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_ENV, `GOOGLE_APPLICATION_CREDENTIALS=${credentialsPath}\n`);
           NODE
 
+      - name: Ensure iphonesolo.com targets keiazotilt
+        continue-on-error: true
+        run: |
+          node <<'NODE'
+          const { GoogleAuth } = require('./functions/node_modules/google-auth-library');
+          const projectId = process.env.FIREBASE_PROJECT_ID;
+          const domain = 'iphonesolo.com';
+          const targetSite = 'keiazotilt';
+          const candidateSites = [targetSite, projectId];
+          const base = 'https://firebasehosting.googleapis.com/v1beta1';
+
+          async function main() {
+            const auth = new GoogleAuth({
+              keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+              scopes: ['https://www.googleapis.com/auth/firebase.hosting'],
+            });
+            const client = await auth.getClient();
+            const headers = await client.getRequestHeaders();
+
+            for (const site of candidateSites) {
+              const response = await fetch(
+                `${base}/projects/${projectId}/sites/${site}/customDomains/${domain}`,
+                { headers },
+              );
+              if (response.ok) {
+                const current = await response.json();
+                if (site !== targetSite) {
+                  throw new Error(
+                    `${domain} is attached to Firebase Hosting site "${site}", not "${targetSite}". Move it in Firebase Console before deleting either assignment.`,
+                  );
+                }
+                console.log(
+                  `${domain} is assigned to ${targetSite}; host=${current.hostState || 'pending'}, cert=${current.cert?.state || 'pending'}.`,
+                );
+                return;
+              }
+              if (response.status !== 404) {
+                throw new Error(
+                  `Unable to inspect ${domain} on ${site}: HTTP ${response.status} ${await response.text()}`,
+                );
+              }
+            }
+
+            const create = await fetch(
+              `${base}/projects/${projectId}/sites/${targetSite}/customDomains?customDomainId=${encodeURIComponent(domain)}`,
+              {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+              },
+            );
+            if (!create.ok) {
+              throw new Error(
+                `Unable to attach ${domain} to ${targetSite}: HTTP ${create.status} ${await create.text()}`,
+              );
+            }
+            const operation = await create.json();
+            console.log(
+              `Requested ${domain} attachment to ${targetSite}: ${operation.name || 'operation started'}.`,
+            );
+          }
+
+          main().catch((error) => {
+            console.error(error.message);
+            process.exitCode = 1;
+          });
+          NODE
+
       - name: Deploy live presence rules when available
         continue-on-error: true
         run: npx --yes firebase-tools deploy --only database --project "$FIREBASE_PROJECT_ID" --non-interactive
@@ -137,5 +205,5 @@ jobs:
             echo "Waiting for iphonesolo.com to serve ${GITHUB_SHA} (attempt ${attempt}/18)..."
             sleep 10
           done
-          echo "::error::iphonesolo.com did not serve the deployed commit and Stripe backend within the verification window."
+          echo "::error::iphonesolo.com did not serve the deployed Hosting commit within the verification window."
           exit 1
