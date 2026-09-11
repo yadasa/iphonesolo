@@ -8,17 +8,17 @@ This checklist captures the requested migration and customization work for the c
 - [x] Redirect `/experiment` back to `/`.
 
 ## Home-screen links and app icons
-- [ ] Threads → `https://threads.com/keiazo`.
-- [ ] TikTok → `https://tiktok.com/ozaiek`.
-- [ ] Former Colerm tile → `https://exempliph.ai` with the supplied ExempliphAI / AI Job Search artwork.
-- [ ] Former X tile → `https://instagram.com/keiazo` with an Instagram app icon.
-- [ ] Former Shell Click tile → `https://github.com/` with a GitHub app icon.
-- [ ] Former RedNote tile → `https://asaday.co/consultation` with a book-style `1 on 1 sessions` app icon.
-- [ ] Crop/compose every replacement icon for the source crop used by the existing canvas renderer so no artwork is clipped or padded incorrectly.
-- [ ] Cache-bust the changed home-screen assets so iPhone/Safari clients do not keep the old icons.
+- [x] Threads → `https://threads.com/keiazo`.
+- [x] TikTok → `https://tiktok.com/ozaiek`.
+- [x] Former Colerm tile → `https://exempliph.ai` with the supplied ExempliphAI / AI Job Search artwork.
+- [x] Former X tile → `https://instagram.com/keiazo` with an Instagram app icon.
+- [x] Former Shell Click tile → `https://github.com/` with a GitHub app icon.
+- [x] Former RedNote tile → `https://asaday.co/consultation` with a book-style `1 on 1 sessions` app icon.
+- [x] Crop/compose every replacement icon for the source crop used by the existing canvas renderer so no artwork is clipped or padded incorrectly.
+- [x] Cache-bust the changed home-screen assets so iPhone/Safari clients do not keep the old icons.
 
 ## Wallpaper
-- [ ] Replace the home-screen wallpaper with the supplied dark geometric wallpaper while preserving the phone-screen aspect ratio and cover behavior.
+- [x] Replace the home-screen wallpaper with the supplied dark geometric wallpaper while preserving the phone-screen aspect ratio and cover behavior.
 
 ## Liquid Glass UI
 - [ ] Port the Garden/church frosted-glass treatment as the visual reference: ~22px backdrop blur, 145% saturation, translucent white border, inset highlight, layered soft shadow.
