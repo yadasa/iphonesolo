@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import vm from "node:vm";
 
 test("home-screen ad CTA and Settings use the new glowing accents", async () => {
   const [source, start] = await Promise.all([
@@ -8,6 +9,7 @@ test("home-screen ad CTA and Settings use the new glowing accents", async () => 
     readFile("public/experiment/_app/immutable/entry/start.DceLwiAH.js", "utf8"),
   ]);
 
+  assert.doesNotThrow(() => new vm.Script(source));
   assert.match(start, /\/home-screen-accent\.js\?v=20260911-1/);
   assert.match(source, /keiazo-ad-pill-overlay/);
   assert.match(source, /Advertise your business here for/);
