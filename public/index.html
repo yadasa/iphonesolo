@@ -1,160 +1,38 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-    <meta name="theme-color" content="#050609" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="description" content="Turn a photo or video into a motion-tracked perspective illusion." />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Keiazo Tilt" />
-    <link rel="manifest" href="/app.webmanifest" />
-    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
-    <link rel="stylesheet" href="/assets/style.css" />
-    <title>Keiazo Tilt</title>
-  </head>
-  <body>
-    <main id="app" class="app" data-controls="open">
-      <canvas id="gl" aria-label="Motion-controlled perspective image"></canvas>
+  <head><meta charset="utf-8" /><link href="/experiment/_app/immutable/entry/start.DceLwiAH.js" rel="modulepreload">
+		<link href="/experiment/_app/immutable/chunks/CffVwAsf.js" rel="modulepreload">
+		<link href="/experiment/_app/immutable/chunks/DSbqi2Pc.js" rel="modulepreload">
+		<link href="/experiment/_app/immutable/entry/app.DBjMr3fU.js" rel="modulepreload">
+		<link href="/experiment/_app/immutable/chunks/uBIymjUX.js" rel="modulepreload">
+		<link href="/experiment/_app/immutable/chunks/xihTtKlq.js" rel="modulepreload">
+		<link href="/experiment/_app/immutable/nodes/0.DPmgf6sp.js" rel="modulepreload">
+		<link href="/experiment/_app/immutable/chunks/NmbfL6iO.js" rel="modulepreload">
+		<link href="/experiment/_app/immutable/nodes/2.CLft3SKH.js" rel="modulepreload">
+		<script defer="" src="https://umami.gnimoay.com/script.js" data-website-id="c02ee404-7da4-429c-a2ae-6da18df78b58" data-domains="solotilt.com"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/> <meta name="theme-color" content="#050609"/> <meta name="description" content="Tilt your phone. Watch perspective shift. Solo is a motion-powered optical illusion for your screen."/> <link rel="canonical" href="https://solotilt.com/"/> <meta property="og:type" content="website"/> <meta property="og:site_name" content="Solo"/> <meta property="og:title" content="Solo — A new perspective"/> <meta property="og:description" content="Tilt your phone. Watch perspective shift. Solo is a motion-powered optical illusion for your screen."/> <meta property="og:url" content="https://solotilt.com/"/> <meta property="og:image" content="https://solotilt.com/solo-icon.png"/> <meta property="og:image:width" content="512"/> <meta property="og:image:height" content="512"/> <meta property="og:image:type" content="image/png"/> <meta property="og:image:alt" content="Solo icon: one hand holding a normal upright iPhone"/> <meta name="twitter:card" content="summary"/> <meta name="twitter:creator" content="@SesamPicr"/> <meta name="twitter:title" content="Solo — A new perspective"/> <meta name="twitter:description" content="Tilt your phone. Watch perspective shift. Solo is a motion-powered optical illusion for your screen."/> <meta name="twitter:image" content="https://solotilt.com/solo-icon.png"/> <meta name="twitter:image:alt" content="Solo icon: one hand holding a normal upright iPhone"/> <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico"/> <link rel="icon" type="image/png" sizes="32x32" href="/solo-favicon.png"/> <link rel="apple-touch-icon" sizes="180x180" href="/solo-apple-touch-icon.png"/> <link rel="manifest" href="/flip.webmanifest"/> <meta name="apple-mobile-web-app-capable" content="yes"/> <meta name="apple-mobile-web-app-title" content="Solo"/> <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/><title>Solo</title>
+		<link href="/experiment/_app/immutable/assets/0.l6GNBpaz.css" rel="stylesheet">
+		<link href="/experiment/_app/immutable/assets/2.CPLL6vbH.css" rel="stylesheet"></head>
+  <body data-sveltekit-preload-data="hover"><div style="display: contents"><div class="solo-shell svelte-1uha8ag waiting-for-gravity"><div class="safe-area-probe svelte-1uha8ag" aria-hidden="true"></div> <div class="device-stage svelte-1uha8ag"><div class="device-body svelte-1uha8ag"><div class="device-screen svelte-1uha8ag"><canvas id="gl" role="button" tabindex="0" aria-label="Settings"></canvas> <div class="chrome"><div class="hint hidden" role="status"></div></div></div></div></div> <dialog id="settings-dialog" aria-labelledby="settings-title"><div class="settings-heading svelte-1uha8ag"><h2 id="settings-title" class="svelte-1uha8ag">Settings</h2><button type="button" class="svelte-1uha8ag">Done</button></div> <div class="settings-content svelte-1uha8ag"><label class="language-picker svelte-15pygjb"><span>Language</span> <select class="svelte-15pygjb"><option value="en" lang="en" selected="">English</option><option value="fr" lang="fr">Français</option><option value="es" lang="es">Español</option><option value="zh" lang="zh">简体中文</option><option value="ja" lang="ja">日本語</option><option value="ko" lang="ko">한국어</option></select></label> <label class="pick settings-pick svelte-1uha8ag">Choose image<input type="file" accept="image/*"/></label> <button type="button" aria-pressed="false">Fullscreen</button></div></dialog> <dialog id="motion-permission" aria-labelledby="motion-permission-title" aria-describedby="motion-permission-message"><div class="permission-heading"><div class="dialog-icon" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-12 18 18)"><rect x="11" y="5" width="14" height="26" rx="4"></rect><path d="M16 27h4"></path></g><path d="M6 12a14 14 0 0 0-1 12m0 0-3-3m3 3 3-3M30 24a14 14 0 0 0 1-12m0 0-3 3m3-3 3 3"></path></svg></div> <a class="credit" href="https://x.com/SesamPicr" target="_blank" rel="noopener noreferrer">built by <strong>Envl</strong> <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"></path></svg></a></div> <label class="language-picker svelte-15pygjb"><span>Language</span> <select class="svelte-15pygjb"><option value="en" lang="en" selected="">English</option><option value="fr" lang="fr">Français</option><option value="es" lang="es">Español</option><option value="zh" lang="zh">简体中文</option><option value="ja" lang="ja">日本語</option><option value="ko" lang="ko">한국어</option></select></label> <h2 id="motion-permission-title">Enable motion</h2> <p id="motion-permission-message">Allow motion access, then tilt your phone to unfold the image.</p> <button type="button">Enable motion</button></dialog> <dialog aria-labelledby="fullscreen-help-title"><div class="dialog-icon" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 6H6v7m17-7h7v7M6 23v7h7m17-7v7h-7M6 6l8 8m16-8-8 8M6 30l8-8m16 8-8-8"></path></svg></div> <h2 id="fullscreen-help-title">More room to unfold</h2> <p>Add Solo to your Home Screen to open it without Safari’s bars.</p> <ol class="setup-steps"><li>Tap Share in Safari.</li><li>Choose Add to Home Screen.</li><li>Keep Open as Web App on, then tap Add.</li></ol> <p class="footnote">Open Solo from your Home Screen to begin.</p> <form method="dialog"><button type="submit">Got it</button></form></dialog> <div class="error" role="alert"></div></div>
+			<script>
+				{
+					__sveltekit_3l6ypl = {
+						base: ""
+					};
 
-      <div class="ambient" aria-hidden="true"></div>
+					const element = document.currentScript.parentElement;
 
-      <section class="controls" aria-label="Image controls">
-        <button id="toggle-controls" class="icon-button" type="button" aria-expanded="true" aria-controls="control-panel" aria-label="Toggle image controls">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M9 17h6" /></svg>
-        </button>
-
-        <div id="control-panel" class="control-panel">
-          <label class="button primary" for="media-picker">Choose photo or video</label>
-          <input id="media-picker" type="file" accept="image/*,video/*" hidden />
-          <button id="motion" class="button" type="button">Enable motion</button>
-          <button id="fullscreen" class="button" type="button">Fullscreen</button>
-          <button id="recalibrate" class="button quiet" type="button" hidden>Recalibrate</button>
-          <button id="hide-ui" class="button quiet" type="button">Hide UI until refresh</button>
-        </div>
-      </section>
-
-      <section class="tuning" aria-label="Effect settings">
-        <button id="tuning-toggle" class="icon-button tuning-toggle" type="button" aria-expanded="false" aria-controls="tuning-panel" aria-label="Open effect settings">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 12h2M10 12h10M4 17h7M15 17h5" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="12" r="2" /><circle cx="13" cy="17" r="2" /></svg>
-        </button>
-
-        <aside id="tuning-panel" class="tuning-panel" aria-hidden="true" inert>
-          <header class="tuning-header">
-            <div>
-              <span class="eyebrow">Live renderer</span>
-              <h2>Effect settings</h2>
-            </div>
-            <button id="tuning-close" class="panel-close" type="button" aria-label="Close effect settings">×</button>
-          </header>
-
-          <div class="history-controls" aria-label="Settings history">
-            <button id="settings-undo" type="button" disabled>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5M5 12h8a6 6 0 0 1 6 6" /></svg>
-              Undo
-            </button>
-            <button id="settings-redo" type="button" disabled>
-              Redo
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7 5 5-5 5M19 12h-8a6 6 0 0 0-6 6" /></svg>
-            </button>
-          </div>
-
-          <div class="parameter-list">
-            <label class="parameter">
-              <span><b>Horizontal stretch</b><output data-output="horizontalStretch">1.09</output></span>
-              <input data-setting="horizontalStretch" type="range" min="0" max="4" step="0.01" value="1.09" />
-            </label>
-            <label class="parameter">
-              <span><b>Perspective skew</b><output data-output="perspectiveSkew">0.70</output></span>
-              <input data-setting="perspectiveSkew" type="range" min="-1" max="1" step="0.01" value="0.7" />
-            </label>
-            <label class="parameter">
-              <span><b>Vertical compression</b><output data-output="verticalCompression">1.18</output></span>
-              <input data-setting="verticalCompression" type="range" min="0" max="2" step="0.01" value="1.18" />
-            </label>
-            <label class="parameter">
-              <span><b>Vertical displacement</b><output data-output="verticalDisplacement">+36%</output></span>
-              <input data-setting="verticalDisplacement" data-format="signed-percent" type="range" min="-0.5" max="0.5" step="0.01" value="0.36" />
-            </label>
-            <label class="parameter">
-              <span><b>Rotation influence</b><output data-output="rotationInfluence">100%</output></span>
-              <input data-setting="rotationInfluence" data-format="percent" type="range" min="0" max="2" step="0.01" value="1" />
-            </label>
-            <label class="parameter">
-              <span><b>Transform falloff</b><output data-output="transformFalloff">1.03</output></span>
-              <input data-setting="transformFalloff" type="range" min="0.2" max="4" step="0.01" value="1.03" />
-            </label>
-            <label class="parameter">
-              <span><b>Darkness gradient</b><output data-output="darknessGradient">2.21</output></span>
-              <input data-setting="darknessGradient" type="range" min="0" max="5" step="0.01" value="2.21" />
-            </label>
-            <label class="parameter">
-              <span><b>Darkness falloff</b><output data-output="darknessFalloff">0.72</output></span>
-              <input data-setting="darknessFalloff" type="range" min="0.2" max="4" step="0.01" value="0.72" />
-            </label>
-            <label class="parameter">
-              <span><b>Gaussian blur strength</b><output data-output="gaussianBlurStrength">310%</output></span>
-              <input data-setting="gaussianBlurStrength" data-format="percent" type="range" min="0" max="4" step="0.01" value="3.1" />
-            </label>
-            <label class="parameter">
-              <span><b>Gaussian blur size</b><output data-output="gaussianBlurSize">100 px</output></span>
-              <input data-setting="gaussianBlurSize" data-format="pixels" type="range" min="0" max="200" step="1" value="100" />
-            </label>
-            <label class="parameter">
-              <span><b>WebGL blur samples</b><output data-output="gaussianBlurSamples">33 taps</output></span>
-              <input data-setting="gaussianBlurSamples" data-format="samples" type="range" min="3" max="65" step="2" value="33" />
-              <small>More taps smooth stretched pixels but use more GPU.</small>
-            </label>
-            <label class="parameter">
-              <span><b>Blur falloff</b><output data-output="gaussianBlurFalloff">0.43</output></span>
-              <input data-setting="gaussianBlurFalloff" type="range" min="0.2" max="4" step="0.01" value="0.43" />
-            </label>
-            <label class="parameter switch-parameter">
-              <span>
-                <b>Extra nonlinear falloff</b>
-                <small>Applies an additional S-curve to every distance falloff.</small>
-              </span>
-              <input data-setting="nonlinearFalloff" type="checkbox" role="switch" checked />
-            </label>
-          </div>
-
-          <div class="json-controls">
-            <button id="show-settings" class="button primary" type="button" aria-expanded="false" aria-controls="settings-json-wrap">Show settings JSON</button>
-            <div id="settings-json-wrap" class="settings-json-wrap" hidden>
-              <pre id="settings-json" tabindex="0"></pre>
-              <button id="copy-settings" class="button" type="button">Copy JSON</button>
-            </div>
-          </div>
-        </aside>
-      </section>
-
-      <div id="hint" class="hint" role="status" aria-live="polite">
-        <strong>Choose a photo or video</strong>
-        <span>Rotate your phone to shift perspective. Tap video to pause or play.</span>
-      </div>
-
-      <div id="toast" class="toast" role="alert" aria-live="assertive" hidden></div>
-
-      <dialog id="motion-dialog">
-        <div class="motion-mark" aria-hidden="true">↔</div>
-        <h1>Move your phone. Shift the view.</h1>
-        <p>Keiazo Tilt uses your phone’s motion sensor to give your photo or video a responsive perspective effect. Your motion data stays on this device.</p>
-        <button class="button primary motion-continue" type="button">Enable device tilt</button>
-        <button class="text-button motion-skip" type="button">Continue without motion</button>
-      </dialog>
-
-      <dialog id="install-dialog">
-        <button class="dialog-close" type="button" aria-label="Close">×</button>
-        <div class="install-mark" aria-hidden="true">↗</div>
-        <h1>Make it feel native</h1>
-        <p>Like the effect? In Safari, tap Share, then <strong>Add to Home Screen</strong>. Reopen it there for the cleanest full-screen experience.</p>
-        <button class="button primary dialog-done" type="button">Got it</button>
-      </dialog>
-
-      <noscript>This experience requires JavaScript.</noscript>
-    </main>
-    <script type="module" src="/assets/app.js"></script>
-  </body>
+					Promise.all([
+						import("/experiment/_app/immutable/entry/start.DceLwiAH.js"),
+						import("/experiment/_app/immutable/entry/app.DBjMr3fU.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element, {
+							node_ids: [0, 2],
+							data: [null,null],
+							form: null,
+							error: null
+						});
+					});
+				}
+			</script>
+		</div></body>
 </html>
