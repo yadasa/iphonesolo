@@ -249,6 +249,8 @@ test("language picker is custom, scrollable, and preserves native selection", as
 
 test("Liquid Glass uses the complete church transmitted-shell pipeline", async () => {
   const source = await readFile("public/liquid-glass.js", "utf8");
+  const css = await readFile("public/keiazo-root.css", "utf8");
+  const renderer = await readFile(rootNodePath, "utf8");
   assert.match(source, /const float beigeOpacity = 0\.38/);
   assert.match(source, /vec3 tintedColor = mix\(color, beige, beigeOpacity\)/);
   assert.match(source, /float edge = 1\.0 - smoothstep\(strong, featherEnd, dist\)/);
@@ -256,6 +258,8 @@ test("Liquid Glass uses the complete church transmitted-shell pipeline", async (
   assert.match(source, /return mix\(tintedColor, glass, edge\)/);
   assert.match(source, /gl_FragColor = vec4\(glass, 1\.0\)/);
   assert.match(source, /#settings-dialog/);
+  assert.match(renderer, /preserveDrawingBuffer:!0/);
+  assert.match(css, /#motion-permission\.keiazo-liquid-ready::after/);
 });
 
 test("video uploads use the guarded canvas-frame pipeline", async () => {
