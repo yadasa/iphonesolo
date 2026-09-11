@@ -1,4 +1,4 @@
-import { MotionTracker, clamp, smooth, tiltToFold } from "./motion.js";
+import { MotionTracker, smooth, tiltToFold } from "./motion.js";
 import { DEFAULT_RENDER_SETTINGS, FoldRenderer } from "./renderer.js";
 
 const app = document.querySelector("#app");
@@ -9,6 +9,7 @@ const panel = document.querySelector("#control-panel");
 const motionButton = document.querySelector("#motion");
 const fullscreenButton = document.querySelector("#fullscreen");
 const recalibrateButton = document.querySelector("#recalibrate");
+const hideUiButton = document.querySelector("#hide-ui");
 const hint = document.querySelector("#hint");
 const toast = document.querySelector("#toast");
 const installDialog = document.querySelector("#install-dialog");
@@ -39,7 +40,6 @@ let dragging = false;
 let pointerStartX = 0;
 let pointerStartY = 0;
 let pointerMoved = false;
-let tiltStart = 0;
 let toastTimer;
 let activeVideo = null;
 let activeMedia = null;
@@ -49,6 +49,7 @@ let installPromptScheduled = false;
 let renderSettings = { ...DEFAULT_RENDER_SETTINGS };
 let editStart = null;
 let restoreInFlight = null;
+let playbackIntentId = 0;
 const undoStack = [];
 const redoStack = [];
 
@@ -123,7 +124,8 @@ function renderFrame(now) {
   previousTime = now;
   renderedTilt = smooth(renderedTilt, targetTilt, dt);
   const fold = tiltToFold(renderedTilt);
-  renderer?.render(fold.angle, fold.direction);
+  const rotationProgress = Math.min(1, Math.abs(renderedTilt) / 180);
+  renderer?.render(fold.angle, fold.direction, rotationProgress);
   if (Math.abs(renderedTilt) > 5) hasInteracted = true;
   if (mediaReady && hasInteracted) maybeShowInstallHelp();
   animationFrameId = requestAnimationFrame(renderFrame);
@@ -225,8 +227,6 @@ function createVideoFramePlan(video) {
   const displayScale = Math.min(1, workingLongEdge / sourceLongEdge);
   const scale = Math.min(1, textureScale, displayScale);
 
-  // Always isolate decoded video frames behind a 2D canvas. This prevents iOS
-  // WebKit from receiving a live HTMLVideoElement in texImage2D/texSubImage2D.
   const frameCanvas = document.createElement("canvas");
   frameCanvas.width = Math.max(2, Math.round(sourceWidth * scale));
   frameCanvas.height = Math.max(2, Math.round(sourceHeight * scale));
@@ -264,11 +264,7 @@ async function prepareVideo(file, url) {
 
   try {
     await waitForVideoMetadata(video);
-    try {
-      await video.play();
-    } catch {
-      throw new Error("Video playback was blocked before a safe frame could be created. Tap and choose the video again.");
-    }
+    await video.play();
     await waitForFirstVideoFrame(video);
     const framePlan = createVideoFramePlan(video);
     return { type: "video", video, url, shouldPlay: true, ...framePlan };
@@ -282,6 +278,7 @@ function commitMedia(nextMedia) {
   const previousMedia = activeMedia;
   activeMedia = nextMedia;
   activeVideo = nextMedia.type === "video" ? nextMedia.video : null;
+  playbackIntentId += 1;
   releaseMedia(previousMedia);
   mediaReady = true;
   hint.hidden = true;
@@ -290,16 +287,27 @@ function commitMedia(nextMedia) {
   renderedTilt = 0;
 }
 
-async function resumeVideoMedia(media, { rebind = false } = {}) {
-  if (!media || media.type !== "video") return;
-  const video = media.video;
+async function startVideoPlayback(media, { reportError = true } = {}) {
+  if (!media || media !== activeMedia || media.type !== "video") return false;
+  const intentId = ++playbackIntentId;
   media.shouldPlay = true;
-  await video.play();
-  if (rebind) {
-    await waitForFirstVideoFrame(video);
-    media.updateFrame?.();
-    renderer.setVideo(video, media);
+  try {
+    await media.video.play();
+    if (intentId !== playbackIntentId || !media.shouldPlay || media !== activeMedia) return false;
+    return true;
+  } catch (error) {
+    if (intentId !== playbackIntentId || !media.shouldPlay || media !== activeMedia) return false;
+    media.shouldPlay = false;
+    if (reportError) showToast("Playback could not start. Tap the screen to try again.");
+    return false;
   }
+}
+
+function pauseVideoPlayback(media) {
+  if (!media || media !== activeMedia || media.type !== "video") return;
+  playbackIntentId += 1;
+  media.shouldPlay = false;
+  media.video.pause();
 }
 
 async function loadFile(file) {
@@ -318,9 +326,7 @@ async function loadFile(file) {
       candidateVideo = nextMedia.video;
       renderer.setVideo(nextMedia.video, nextMedia);
       commitMedia(nextMedia);
-      // The iOS file picker can briefly trigger page visibility changes. Reassert
-      // the intended autoplay state after the candidate has been fully committed.
-      await resumeVideoMedia(nextMedia);
+      await startVideoPlayback(nextMedia, { reportError: false });
       if (nextMedia.downscaled) showToast(`Large video optimized to ${nextMedia.width}×${nextMedia.height} for stable playback.`);
     } else {
       const image = new Image();
@@ -360,23 +366,13 @@ async function restoreActiveMedia() {
   return restoreInFlight;
 }
 
-async function toggleVideoPlayback() {
+function toggleVideoPlayback() {
   if (!activeMedia || activeMedia.type !== "video") return;
-  const video = activeMedia.video;
-  if (!video.paused && !video.ended) {
-    activeMedia.shouldPlay = false;
-    video.pause();
+  if (activeMedia.shouldPlay && !activeMedia.video.paused && !activeMedia.video.ended) {
+    pauseVideoPlayback(activeMedia);
     return;
   }
-
-  try {
-    // Rebind after the first resumed frame. A previous media-upload error may
-    // have stopped requestVideoFrameCallback while leaving renderer.video set.
-    await resumeVideoMedia(activeMedia, { rebind: true });
-  } catch {
-    activeMedia.shouldPlay = false;
-    showToast("Playback could not start. Try tapping the video again.");
-  }
+  startVideoPlayback(activeMedia);
 }
 
 toggle.addEventListener("click", () => {
@@ -388,6 +384,11 @@ toggle.addEventListener("click", () => {
 
 tuningToggle.addEventListener("click", () => openTuningPanel(app.dataset.tuning !== "open"));
 tuningClose.addEventListener("click", () => openTuningPanel(false));
+
+hideUiButton?.addEventListener("click", () => {
+  for (const dialog of document.querySelectorAll("dialog[open]")) dialog.close();
+  for (const element of document.querySelectorAll(".controls, .tuning, #hint, #toast, dialog")) element.hidden = true;
+});
 
 for (const input of settingInputs) {
   const beginEdit = () => { if (!editStart) editStart = settingsSnapshot(); };
@@ -449,7 +450,7 @@ motionButton.addEventListener("click", async () => {
     motionButton.textContent = "Motion enabled";
     motionButton.disabled = true;
     recalibrateButton.hidden = false;
-    showToast("Motion enabled. Hold your phone naturally, then tilt it.");
+    showToast("Motion enabled. Hold your phone naturally, then rotate it.");
   } catch (error) {
     showToast(error.message);
   }
@@ -475,7 +476,7 @@ document.querySelector(".motion-continue").addEventListener("click", async () =>
 
 document.querySelector(".motion-skip").addEventListener("click", () => {
   motionDialog.close();
-  showToast("Choose a photo or video. You can drag the screen to test the effect.");
+  showToast("Choose a photo or video. Device rotation controls the effect.");
 });
 
 recalibrateButton.addEventListener("click", () => {
@@ -503,7 +504,6 @@ canvas.addEventListener("pointerdown", event => {
   pointerMoved = false;
   pointerStartX = event.clientX;
   pointerStartY = event.clientY;
-  tiltStart = targetTilt;
   canvas.setPointerCapture(event.pointerId);
 });
 
@@ -512,9 +512,6 @@ canvas.addEventListener("pointermove", event => {
   const deltaX = event.clientX - pointerStartX;
   const deltaY = event.clientY - pointerStartY;
   if (Math.hypot(deltaX, deltaY) >= TAP_MOVE_THRESHOLD_PX) pointerMoved = true;
-  const delta = deltaX / Math.max(1, innerWidth);
-  targetTilt = clamp(tiltStart + delta * 190, -180, 180);
-  if (Math.abs(delta) > .04) hasInteracted = true;
 });
 
 canvas.addEventListener("pointerup", event => {
@@ -532,6 +529,7 @@ canvas.addEventListener("pointercancel", event => {
 
 canvas.addEventListener("foldrenderercontextlost", () => {
   stopRendering();
+  playbackIntentId += 1;
   if (activeMedia?.type === "video") activeMedia.video.pause();
   showToast("Graphics context reset. Restoring your media…");
 });
@@ -553,8 +551,7 @@ canvas.addEventListener("foldrenderercontextrestorefailed", () => {
 
 canvas.addEventListener("foldrenderermediaerror", event => {
   if (activeMedia?.type === "video") {
-    activeMedia.shouldPlay = false;
-    activeMedia.video.pause();
+    pauseVideoPlayback(activeMedia);
   }
   showToast(event.detail?.message || "Video rendering stopped, but the app is still usable.");
 });
@@ -562,12 +559,13 @@ canvas.addEventListener("foldrenderermediaerror", event => {
 document.addEventListener("visibilitychange", async () => {
   if (document.hidden) {
     stopRendering();
+    playbackIntentId += 1;
     activeVideo?.pause();
     return;
   }
   if (tracker.listening) tracker.recalibrate();
   if (activeMedia?.type === "video" && activeMedia.shouldPlay) {
-    try { await resumeVideoMedia(activeMedia); } catch {}
+    await startVideoPlayback(activeMedia, { reportError: false });
   }
   startRendering();
 });
