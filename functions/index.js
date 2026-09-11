@@ -1,4 +1,4 @@
-const { onRequest } = require("firebase-functions/v2/https");
+const functions = require("firebase-functions/v1");
 
 const REGION = "us-central1";
 const PRODUCT_KEY = "iphonesolo-source-code";
@@ -9,6 +9,10 @@ const ALLOWED_ORIGINS = new Set([
   "https://keiazotilt.web.app",
   "https://keiazotilt.firebaseapp.com",
 ]);
+
+function httpFunction(options, handler) {
+  return functions.region(REGION).runWith(options).https.onRequest(handler);
+}
 
 function sendJson(res, status, payload) {
   res.set("Cache-Control", "no-store");
@@ -65,8 +69,8 @@ function isPaidCodeSession(session) {
   );
 }
 
-exports.codeHealth = onRequest(
-  { region: REGION, maxInstances: 4, timeoutSeconds: 15 },
+exports.codeHealth = httpFunction(
+  { maxInstances: 4, timeoutSeconds: 15 },
   async (req, res) => {
     if (req.method !== "GET") {
       res.set("Allow", "GET");
@@ -83,8 +87,8 @@ exports.codeHealth = onRequest(
   },
 );
 
-exports.codeCheckout = onRequest(
-  { region: REGION, maxInstances: 10, timeoutSeconds: 30 },
+exports.codeCheckout = httpFunction(
+  { maxInstances: 10, timeoutSeconds: 30 },
   async (req, res) => {
     if (req.method !== "POST") {
       res.set("Allow", "POST");
@@ -148,8 +152,8 @@ exports.codeCheckout = onRequest(
   },
 );
 
-exports.codeVerify = onRequest(
-  { region: REGION, maxInstances: 20, timeoutSeconds: 20 },
+exports.codeVerify = httpFunction(
+  { maxInstances: 20, timeoutSeconds: 20 },
   async (req, res) => {
     if (req.method !== "GET") {
       res.set("Allow", "GET");
@@ -182,8 +186,8 @@ exports.codeVerify = onRequest(
   },
 );
 
-exports.codeDownload = onRequest(
-  { region: REGION, maxInstances: 20, timeoutSeconds: 20 },
+exports.codeDownload = httpFunction(
+  { maxInstances: 20, timeoutSeconds: 20 },
   async (req, res) => {
     if (req.method !== "GET") {
       res.set("Allow", "GET");
