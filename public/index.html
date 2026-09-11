@@ -32,6 +32,7 @@
           <button id="motion" class="button" type="button">Enable motion</button>
           <button id="fullscreen" class="button" type="button">Fullscreen</button>
           <button id="recalibrate" class="button quiet" type="button" hidden>Recalibrate</button>
+          <button id="hide-ui" class="button quiet" type="button">Hide UI until refresh</button>
         </div>
       </section>
 
@@ -70,12 +71,12 @@
               <input data-setting="perspectiveSkew" type="range" min="-1" max="1" step="0.01" value="0.7" />
             </label>
             <label class="parameter">
-              <span><b>Vertical compression</b><output data-output="verticalCompression">1.35</output></span>
-              <input data-setting="verticalCompression" type="range" min="0" max="2" step="0.01" value="1.35" />
+              <span><b>Vertical compression</b><output data-output="verticalCompression">1.18</output></span>
+              <input data-setting="verticalCompression" type="range" min="0" max="2" step="0.01" value="1.18" />
             </label>
             <label class="parameter">
-              <span><b>Vertical displacement</b><output data-output="verticalDisplacement">+28%</output></span>
-              <input data-setting="verticalDisplacement" data-format="signed-percent" type="range" min="-0.5" max="0.5" step="0.01" value="0.28" />
+              <span><b>Vertical displacement</b><output data-output="verticalDisplacement">+36%</output></span>
+              <input data-setting="verticalDisplacement" data-format="signed-percent" type="range" min="-0.5" max="0.5" step="0.01" value="0.36" />
             </label>
             <label class="parameter">
               <span><b>Rotation influence</b><output data-output="rotationInfluence">100%</output></span>
@@ -131,7 +132,7 @@
 
       <div id="hint" class="hint" role="status" aria-live="polite">
         <strong>Choose a photo or video</strong>
-        <span>Then tilt your phone—or drag anywhere—to shift its perspective.</span>
+        <span>Rotate your phone to shift perspective. Tap video to pause or play.</span>
       </div>
 
       <div id="toast" class="toast" role="alert" aria-live="assertive" hidden></div>
