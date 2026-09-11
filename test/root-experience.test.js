@@ -247,12 +247,14 @@ test("language picker is custom, scrollable, and preserves native selection", as
   assert.match(css, /\.keiazo-language-menu[\s\S]*overflow-y: auto/);
 });
 
-test("Liquid Glass uses the exact church option1 edge pipeline without a tint fill", async () => {
+test("Liquid Glass uses the complete church transmitted-shell pipeline", async () => {
   const source = await readFile("public/liquid-glass.js", "utf8");
-  assert.match(source, /float edge = 1\.0 - smoothstep\(4\.0, 16\.0, dist\)/);
+  assert.match(source, /const float beigeOpacity = 0\.38/);
+  assert.match(source, /vec3 tintedColor = mix\(color, beige, beigeOpacity\)/);
+  assert.match(source, /float edge = 1\.0 - smoothstep\(strong, featherEnd, dist\)/);
   assert.match(source, /\(5\.0 \+ 13\.0 \* edge\) \* edge/);
+  assert.match(source, /return mix\(tintedColor, glass, edge\)/);
   assert.match(source, /gl_FragColor = vec4\(glass, 1\.0\)/);
-  assert.doesNotMatch(source, /beigeOpacity/);
   assert.match(source, /#settings-dialog/);
 });
 
