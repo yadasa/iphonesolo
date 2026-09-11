@@ -138,4 +138,4 @@ This checklist captures the requested migration and customization work for the c
 - [x] Track root and /code page views without embedding another project's analytics ID in source.
 - [x] Make the Add to Home Screen build use standalone display mode and the same measured visual viewport as the website.
 - [x] Reserve the iOS status bar instead of changing the renderer's usable aspect ratio with an overlay.
-- [x] Enforce one source archive response per paid Stripe Checkout Session with an atomic Firestore claim.
+- [x] Enforce one source archive response per paid Stripe Checkout Session with an atomic server-only Firebase Realtime Database claim.

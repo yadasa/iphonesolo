@@ -5,7 +5,7 @@ const admin = require("firebase-admin");
 const functions = require("firebase-functions/v1");
 
 if (!admin.apps.length) admin.initializeApp();
-const firestore = admin.firestore();
+const database = admin.database();
 
 const REGION = "us-central1";
 const PRODUCT_KEY = "iphonesolo-source-code";
@@ -79,26 +79,26 @@ function isPaidCodeSession(session) {
 
 function downloadClaimRef(id) {
   const digest = createHash("sha256").update(id).digest("hex");
-  return firestore.collection(DOWNLOAD_CLAIMS).doc(digest);
+  return database.ref(`${DOWNLOAD_CLAIMS}/${digest}`);
 }
 
 async function downloadWasClaimed(id) {
-  return (await downloadClaimRef(id).get()).exists;
+  return (await downloadClaimRef(id).get()).exists();
 }
 
 async function claimDownload(id, session) {
-  const ref = downloadClaimRef(id);
-  return firestore.runTransaction(async (transaction) => {
-    const existing = await transaction.get(ref);
-    if (existing.exists) return false;
-    transaction.create(ref, {
-      product: PRODUCT_KEY,
-      claimedAt: admin.firestore.FieldValue.serverTimestamp(),
-      amountTotal: Number(session.amount_total) || null,
-      currency: typeof session.currency === "string" ? session.currency : null,
-    });
-    return true;
-  });
+  const claim = {
+    product: PRODUCT_KEY,
+    claimedAt: admin.database.ServerValue.TIMESTAMP,
+    amountTotal: Number(session.amount_total) || null,
+    currency: typeof session.currency === "string" ? session.currency : null,
+  };
+  const result = await downloadClaimRef(id).transaction(
+    (current) => (current === null ? claim : undefined),
+    undefined,
+    false,
+  );
+  return result.committed;
 }
 
 exports.codeHealth = httpFunction(
