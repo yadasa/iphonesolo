@@ -27,18 +27,18 @@ This checklist captures the requested migration and customization work for the c
 - [x] Preserve reduced-transparency and increased-contrast accessibility fallbacks.
 
 ## Video upload reliability
-- [ ] Allow the existing media picker to select images and videos.
-- [ ] Keep the current image upload path unchanged.
-- [ ] Intercept video selections before the image-only Svelte handler.
-- [ ] Decode video into a reusable 2D staging canvas and upload canvas frames to WebGL rather than uploading a live `<video>` element directly.
-- [ ] Cap working video resolution to a safe mobile/GPU budget and source dimensions / `MAX_TEXTURE_SIZE`.
-- [ ] Use `requestVideoFrameCallback` when available and avoid redundant uploads.
-- [ ] Handle autoplay, pause/resume, visibility changes, object-URL cleanup, replacement media, and WebGL context loss without surfacing false playback errors.
-- [ ] Preserve the fold/perspective effect for uploaded video.
+- [x] Allow the existing media picker to select images and videos.
+- [x] Keep the current image upload path unchanged.
+- [x] Route video selections through the renderer's dedicated video loader.
+- [x] Decode video into a reusable 2D staging canvas and upload canvas frames to WebGL rather than uploading a live `<video>` element directly.
+- [x] Cap working video resolution to a safe mobile/GPU budget and source dimensions / `MAX_TEXTURE_SIZE`.
+- [x] Use `requestVideoFrameCallback` when available, throttle fallback uploads, and avoid redundant uploads.
+- [x] Handle autoplay, race-safe tap pause/resume, visibility changes, object-URL cleanup, replacement media, and WebGL context loss without surfacing false playback errors.
+- [x] Preserve the fold/perspective effect for uploaded video.
 
 ## Validation
-- [ ] Verify the generated JS parses successfully.
-- [ ] Verify all required links are present exactly once in the override configuration.
-- [ ] Verify replacement image dimensions/formats match the renderer's expected crops.
+- [x] Verify the generated JS parses successfully.
+- [x] Verify all required links are present exactly once in the root renderer configuration.
+- [x] Verify replacement image dimensions/formats match the renderer's expected crops.
 - [ ] Run the repository test/check commands through CI.
 - [ ] Verify the Firebase Hosting deployment completes for the final commit.

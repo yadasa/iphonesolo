@@ -26,21 +26,21 @@ dialog,
   backdrop-filter: blur(var(--keiazo-glass-blur))
     saturate(var(--keiazo-glass-saturation));
   border: 1px solid var(--keiazo-glass-border) !important;
-  box-shadow: var(--keiazo-glass-shadow);
+  box-shadow: var(--keiazo-glass-shadow) !important;
 }
 
 dialog {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.045) 34%, rgba(255, 255, 255, 0.015) 64%),
     radial-gradient(circle at 18% 0%, rgba(178, 205, 255, 0.13), transparent 48%),
-    var(--keiazo-glass-fill);
+    var(--keiazo-glass-fill) !important;
 }
 
 #motion-permission {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.055) 34%, rgba(255, 255, 255, 0.018) 68%),
     radial-gradient(circle at 22% 0%, rgba(191, 215, 255, 0.16), transparent 52%),
-    rgba(16, 21, 30, 0.46);
+    rgba(16, 21, 30, 0.46) !important;
 }
 
 dialog::backdrop {
@@ -53,7 +53,7 @@ dialog::backdrop {
 .error {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.045) 55%),
-    var(--keiazo-glass-fill-strong);
+    var(--keiazo-glass-fill-strong) !important;
 }
 
 .qr-card span,
@@ -68,7 +68,7 @@ dialog::backdrop {
 .settings-content button {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.035)),
-    rgba(20, 25, 34, 0.5);
+    rgba(20, 25, 34, 0.5) !important;
 }
 
 dialog > button,
