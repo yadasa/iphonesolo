@@ -93,11 +93,11 @@ exports.codeCheckout = onRequest(
     params.set("line_items[0][price_data][currency]", "usd");
     params.set(
       "line_items[0][price_data][product_data][name]",
-      "iPhoneSolo source code donation",
+      "iPhone Solo source code donation",
     );
     params.set(
       "line_items[0][price_data][product_data][description]",
-      "Support the project and download the current source archive immediately after payment.",
+      "Support iPhone Solo and download the current source archive immediately after payment.",
     );
     params.set(
       "line_items[0][price_data][unit_amount]",
