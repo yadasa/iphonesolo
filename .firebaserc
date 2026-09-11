@@ -1,9 +1,9 @@
 {
   "projects": {
-    "default": "keiazotilt"
+    "default": "tilt-e02fd"
   },
   "targets": {
-    "keiazotilt": {
+    "tilt-e02fd": {
       "hosting": {
         "keiazotilt": [
           "keiazotilt"
