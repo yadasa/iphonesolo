@@ -101,9 +101,10 @@ test("home-screen artwork URLs are versioned to replace stale iOS icons", async 
 test("home-screen products occupy the requested slots", async () => {
   const source = await readFile(rootNodePath, "utf8");
   for (const [slot, name] of [
+    ["dock-1", "GitHub"],
+    ["dock-2", "1 on 1 sessions"],
     ["screen-r5-c3", "YouTube · Asaday"],
     ["screen-r5-c4", "TikTok · ozaiek"],
-    ["screen-r6-c3", "GitHub"],
     ["screen-r6-c4", "Threads · keiazo"],
   ]) {
     assert.match(
@@ -120,6 +121,16 @@ test("home-screen products occupy the requested slots", async () => {
   assert.match(
     await readFile("public/home-screen/youtube.svg", "utf8"),
     /width="1024"[\s\S]*height="1024"[\s\S]*viewBox="0 0 1024 1024"/,
+  );
+});
+
+test("home-screen guide invites a media upload", async () => {
+  const source = await readFile(rootNodePath, "utf8");
+  assert.match(source, /Upload your photo\/video/);
+  assert.doesNotMatch(source, /Language & wallpaper/);
+  assert.match(
+    source,
+    /\["shellclick","rednote","knots","settings"\]\.entries\(\)/,
   );
 });
 
