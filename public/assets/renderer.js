@@ -85,25 +85,25 @@ void main() {
   float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), u_darknessFalloff);
   if (u_nonlinearFalloff > 0.5) shadowGradient = smoothstep(0.0, 1.0, shadowGradient);
   float tiltShadow = smoothstep(0.12, 0.82, amount);
-  float depthShade = tiltShadow * shadowGradient * u_darknessGradient;
-  color.rgb *= max(0.0, 1.0 - depthShade);
+  float depthShade = min(0.83, tiltShadow * shadowGradient * u_darknessGradient);
+  color.rgb *= 1.0 - depthShade;
   outColor = color;
 }`;
 
 export const DEFAULT_RENDER_SETTINGS = Object.freeze({
   horizontalStretch: 1.09,
-  perspectiveSkew: -0.18,
+  perspectiveSkew: 0.7,
   verticalCompression: 1.35,
-  verticalDisplacement: 0,
+  verticalDisplacement: 0.28,
   rotationInfluence: 1,
-  transformFalloff: 1,
-  darknessGradient: 2.23,
+  transformFalloff: 1.03,
+  darknessGradient: 2.21,
   darknessFalloff: 0.72,
-  gaussianBlurStrength: 1,
+  gaussianBlurStrength: 3.1,
   gaussianBlurSize: 100,
-  gaussianBlurSamples: 17,
-  gaussianBlurFalloff: 0.46,
-  nonlinearFalloff: false
+  gaussianBlurSamples: 33,
+  gaussianBlurFalloff: 0.43,
+  nonlinearFalloff: true
 });
 
 function compile(gl, type, source) {
