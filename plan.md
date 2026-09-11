@@ -49,4 +49,4 @@ This checklist captures the requested migration and customization work for the c
 - [x] Verify replacement image dimensions/formats match the renderer's expected crops.
 - [x] Run the repository test/check commands through CI.
 - [x] Verify the Firebase Hosting deployment completes for the initial implementation commit (`960298f`).
-- [ ] Verify the corrective Instagram, sessions, and separate Traid tile deployment completes.
+- [x] Verify the corrective Instagram, sessions, and separate Traid tile deployment completes (`0488812`).
