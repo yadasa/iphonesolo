@@ -63,6 +63,17 @@ test("root home-screen links use the requested destinations", async () => {
   assert.doesNotMatch(source, /https:\/\/x\.com\/SesamPicr/);
 });
 
+test("home-screen credit names keiazo in initial and hydrated UI", async () => {
+  const [source, html] = await Promise.all([
+    readFile(rootNodePath, "utf8"),
+    readFile("public/index.html", "utf8"),
+  ]);
+  for (const markup of [source, html]) {
+    assert.match(markup, /built by[\\s\\S]{0,40}<strong>keiazo<\\/strong>/);
+    assert.doesNotMatch(markup, /<strong>Envl<\\/strong>/);
+  }
+});
+
 test("replacement icons and wallpaper have renderer-safe dimensions", async () => {
   const expected = new Map([
     ["public/home-screen/shellclick.png", { width: 1024, height: 1024 }],
