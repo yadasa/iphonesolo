@@ -360,3 +360,360 @@ dialog[aria-labelledby="fullscreen-help-title"] button {
 .solo-shell:not(.desktop) dialog {
   max-height: calc(var(--keiazo-viewport-height) - 32px);
 }
+
+
+/* Desktop motion-study redesign. Mobile and coarse-pointer layouts remain owned by the app. */
+@media (hover: hover) and (pointer: fine) {
+  html,
+  body {
+    background: #050609;
+  }
+
+  .solo-shell.desktop {
+    position: relative;
+    display: block;
+    width: 100vw;
+    min-height: 100dvh;
+    overflow: hidden;
+    padding: 0;
+    color: #f5f6f8;
+    background:
+      radial-gradient(circle at 74% 44%, rgba(126, 140, 170, 0.17), transparent 24%),
+      radial-gradient(circle at 20% 16%, rgba(73, 87, 255, 0.1), transparent 26%),
+      linear-gradient(118deg, #050609 0%, #090b10 52%, #050609 100%);
+    isolation: isolate;
+  }
+
+  .solo-shell.desktop::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.19;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: 88px 88px;
+    -webkit-mask-image: linear-gradient(90deg, #000, transparent 66%);
+    mask-image: linear-gradient(90deg, #000, transparent 66%);
+  }
+
+  .solo-shell.desktop::after {
+    content: "MOTION / DEPTH / 180°";
+    position: absolute;
+    right: 28px;
+    top: 50%;
+    color: rgba(255, 255, 255, 0.34);
+    letter-spacing: 0.22em;
+    font-size: 10px;
+    font-weight: 650;
+    transform: translateY(-50%) rotate(90deg);
+    transform-origin: center;
+  }
+
+  .solo-shell.desktop .project-name {
+    position: absolute;
+    z-index: 6;
+    top: clamp(24px, 4.5vh, 54px);
+    left: clamp(28px, 6vw, 94px);
+    display: flex;
+    gap: 7px;
+    margin: 0;
+    color: #f8f8fa;
+    letter-spacing: -0.055em;
+    font-size: clamp(18px, 1.5vw, 24px);
+    line-height: 1;
+  }
+
+  .solo-shell.desktop .project-name span:last-child {
+    color: #8d95ff;
+  }
+
+  .keiazo-desktop-story {
+    position: absolute;
+    z-index: 5;
+    top: 50%;
+    left: clamp(28px, 6vw, 94px);
+    width: min(38vw, 560px);
+    transform: translateY(-54%);
+  }
+
+  .keiazo-desktop-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: clamp(22px, 4vh, 44px);
+    color: rgba(231, 234, 244, 0.58);
+    letter-spacing: 0.2em;
+    font-size: 10px;
+    font-weight: 750;
+  }
+
+  .keiazo-desktop-eyebrow span,
+  .keiazo-desktop-note span {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #7e87ff;
+    box-shadow: 0 0 18px rgba(126, 135, 255, 0.9);
+  }
+
+  .keiazo-desktop-story h1 {
+    max-width: 620px;
+    margin: 0;
+    color: #f6f6f8;
+    letter-spacing: -0.072em;
+    font-size: clamp(54px, 6vw, 106px);
+    font-weight: 520;
+    line-height: 0.88;
+  }
+
+  .keiazo-desktop-story h1 em {
+    color: transparent;
+    font-style: normal;
+    -webkit-text-stroke: 1px rgba(225, 229, 242, 0.64);
+  }
+
+  .keiazo-desktop-lede {
+    max-width: 485px;
+    margin: clamp(24px, 4vh, 42px) 0 0;
+    color: rgba(226, 229, 238, 0.68);
+    letter-spacing: -0.025em;
+    font-size: clamp(15px, 1.25vw, 19px);
+    line-height: 1.55;
+  }
+
+  .keiazo-desktop-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: clamp(24px, 4vh, 40px);
+  }
+
+  .keiazo-desktop-launch,
+  .keiazo-desktop-code {
+    display: inline-flex;
+    min-height: 54px;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    padding: 0 22px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .keiazo-desktop-launch {
+    color: #08090c;
+    background: #f4f5f7;
+    border: 1px solid #fff;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.24);
+  }
+
+  .keiazo-desktop-code {
+    color: rgba(244, 245, 248, 0.74);
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  .keiazo-desktop-launch:hover,
+  .keiazo-desktop-code:hover {
+    transform: translateY(-1px);
+  }
+
+  .keiazo-desktop-launch:focus-visible,
+  .keiazo-desktop-code:focus-visible {
+    outline: 2px solid #939aff;
+    outline-offset: 4px;
+  }
+
+  .keiazo-desktop-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0 0;
+    color: rgba(223, 226, 235, 0.42);
+    font-size: 11px;
+  }
+
+  .solo-shell.desktop .device-stage {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    right: clamp(42px, 5.5vw, 98px);
+    width: min(49vw, 720px);
+    height: min(88dvh, 900px);
+    min-height: 360px;
+    transform: translateY(-50%);
+  }
+
+  .solo-shell.desktop .device-stage::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    bottom: 4%;
+    width: 72%;
+    height: 14%;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.72);
+    filter: blur(32px);
+    transform: translateX(-50%);
+  }
+
+  .solo-shell.desktop .device-stage canvas {
+    filter:
+      drop-shadow(0 42px 45px rgba(0, 0, 0, 0.55))
+      drop-shadow(0 0 52px rgba(104, 116, 164, 0.1));
+  }
+
+  .solo-shell.desktop .model-status {
+    color: rgba(235, 237, 244, 0.52);
+    letter-spacing: 0.08em;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .solo-shell.desktop .phone-invite {
+    position: absolute;
+    z-index: 8;
+    top: auto;
+    right: auto;
+    bottom: clamp(28px, 5vh, 58px);
+    left: clamp(28px, 6vw, 94px);
+    display: flex;
+    width: auto;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .solo-shell.desktop .phone-invite p {
+    order: 2;
+    width: 164px;
+    margin: 0;
+    color: rgba(224, 227, 236, 0.48);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .solo-shell.desktop .qr-control {
+    order: 1;
+    width: 46px;
+    margin: 0;
+  }
+
+  .solo-shell.desktop .qr-button {
+    width: 46px;
+    height: 46px;
+    color: #d9dbe3;
+    background: rgba(255, 255, 255, 0.055) !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    border-radius: 50%;
+    box-shadow: none !important;
+  }
+
+  .solo-shell.desktop .qr-popover {
+    right: auto;
+    left: 0;
+  }
+
+  .solo-shell.desktop .preview-controls {
+    position: absolute;
+    z-index: 7;
+    right: clamp(56px, 8vw, 138px);
+    bottom: clamp(24px, 4vh, 48px);
+    width: min(29vw, 390px);
+    padding: 13px 16px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 16px;
+    background: rgba(8, 10, 14, 0.58);
+    backdrop-filter: blur(14px);
+  }
+
+  .solo-shell.desktop .preview-label {
+    margin-bottom: 8px;
+    color: rgba(233, 235, 242, 0.58);
+    letter-spacing: 0.05em;
+    font-size: 9px;
+    text-transform: uppercase;
+  }
+
+  .solo-shell.desktop .preview-reset {
+    color: rgba(239, 241, 247, 0.5);
+  }
+
+  .solo-shell.desktop .model-credit {
+    right: 26px;
+    bottom: 14px;
+    left: auto;
+    color: rgba(216, 219, 228, 0.24);
+    font-size: 8px;
+  }
+
+  .solo-shell.desktop .device-body {
+    visibility: hidden;
+  }
+
+  .solo-shell.desktop:not(.keiazo-desktop-ready) .keiazo-desktop-story {
+    opacity: 0;
+    transform: translateY(-50%);
+  }
+
+  .solo-shell.desktop.keiazo-desktop-ready .keiazo-desktop-story {
+    opacity: 1;
+    transition: opacity 0.55s ease, transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (max-width: 1050px) {
+  .keiazo-desktop-story {
+    width: 43vw;
+  }
+
+  .keiazo-desktop-story h1 {
+    font-size: clamp(46px, 6.5vw, 70px);
+  }
+
+  .solo-shell.desktop .device-stage {
+    right: 16px;
+    width: 52vw;
+  }
+
+  .solo-shell.desktop .preview-controls {
+    right: 38px;
+    width: 33vw;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (max-height: 680px) {
+  .keiazo-desktop-story {
+    transform: translateY(-50%);
+  }
+
+  .keiazo-desktop-eyebrow {
+    margin-bottom: 18px;
+  }
+
+  .keiazo-desktop-story h1 {
+    font-size: clamp(45px, 5.4vw, 76px);
+  }
+
+  .keiazo-desktop-lede {
+    margin-top: 20px;
+  }
+
+  .keiazo-desktop-actions {
+    margin-top: 22px;
+  }
+
+  .solo-shell.desktop .device-stage {
+    height: 92dvh;
+  }
+}
