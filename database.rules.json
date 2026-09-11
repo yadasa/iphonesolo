@@ -6,7 +6,7 @@
       ".read": true,
       "$tabId": {
         ".write": "!newData.exists() || (newData.hasChildren(['clientId', 'tabId', 'seenAt']) && newData.getPriority() == null && newData.child('clientId').isString() && newData.child('clientId').val().length <= 96 && newData.child('tabId').isString() && newData.child('tabId').val() == $tabId && newData.child('seenAt').isNumber() && newData.child('seenAt').val() >= now - 120000 && newData.child('seenAt').val() <= now + 5000)",
-        ".validate": "newData.hasOnly(['clientId', 'tabId', 'seenAt'])"
+        ".validate": "newData.numChildren() == 3"
       }
     }
   }
