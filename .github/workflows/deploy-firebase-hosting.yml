@@ -175,7 +175,7 @@ jobs:
           trap 'rm -f functions/.env' EXIT
           printf 'STRIPE_SECRET_KEY=%s\n' "$STRIPE_SECRET_KEY" > functions/.env
           chmod 600 functions/.env
-          npx --yes firebase-tools@latest deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
+          npx --yes firebase-tools@latest deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive --force
 
       - name: Stamp deployment
         run: printf '%s\n' "$GITHUB_SHA" > public/deploy-version.txt

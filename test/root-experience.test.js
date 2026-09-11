@@ -41,7 +41,7 @@ async function imageDimensions(path) {
 test("root home-screen links use the requested destinations", async () => {
   const source = await readFile(rootNodePath, "utf8");
   for (const url of [
-    "https://github.com/",
+    "/code",
     "https://exempliph.ai/",
     "https://instagram.com/keiazo",
     "https://asaday.co/consultation",
