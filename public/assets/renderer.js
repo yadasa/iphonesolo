@@ -84,7 +84,9 @@ void main() {
 
   float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), u_darknessFalloff);
   if (u_nonlinearFalloff > 0.5) shadowGradient = smoothstep(0.0, 1.0, shadowGradient);
-  float tiltShadow = smoothstep(0.12, 0.82, amount);
+  // Let the fold establish itself before the lighting starts to deepen, then
+  // bring the shade in more gradually through the late part of the rotation.
+  float tiltShadow = smoothstep(0.20, 0.90, amount);
   float depthShade = min(0.83, tiltShadow * shadowGradient * u_darknessGradient);
   color.rgb *= 1.0 - depthShade;
   outColor = color;
@@ -335,7 +337,7 @@ export class FoldRenderer {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     if (hasFreshVideoFrame && this.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.video);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.video);
       this.videoFrameReady = false;
       this.lastVideoTime = this.video.currentTime;
     }
