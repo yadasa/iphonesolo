@@ -48,6 +48,7 @@ test("root home-screen links use the requested destinations", async () => {
     "https://traid.ing/",
     "https://tiktok.com/ozaiek",
     "https://threads.com/keiazo",
+    "https://youtube.com/@asaday?si=4JULGekGhmRKHAUN",
   ]) {
     assert.equal(
       source.split(url).length - 1,
@@ -73,7 +74,91 @@ test("replacement icons and wallpaper have renderer-safe dimensions", async () =
 
 test("home-screen artwork URLs are versioned to replace stale iOS icons", async () => {
   const source = await readFile(rootNodePath, "utf8");
-  assert.match(source, /home-screen\/\$\{n\}\.\$\{[^}]+\}\?v=keiazo-20260911-3/);
+  assert.match(
+    source,
+    /home-screen\/\$\{n\}\.\$\{[^}]+\}\?v=keiazo-20260911-4/,
+  );
+});
+
+test("home-screen products occupy the requested slots", async () => {
+  const source = await readFile(rootNodePath, "utf8");
+  for (const [slot, name] of [
+    ["screen-r3-c2", "YouTube · Asaday"],
+    ["screen-r5-c3", "PinchKey"],
+    ["screen-r5-c4", "TikTok · ozaiek"],
+    ["screen-r6-c3", "GitHub"],
+    ["screen-r6-c4", "Threads · keiazo"],
+  ]) {
+    assert.match(
+      source,
+      new RegExp(
+        "id:\\s*`" + slot + "`[\\s\\S]{0,80}name:\\s*`" + name + "`",
+      ),
+    );
+  }
+  assert.match(
+    await readFile("public/home-screen/youtube.svg", "utf8"),
+    /viewBox="0 0 1024 1024"/,
+  );
+});
+
+test("mobile layout follows the live viewport aspect ratio", async () => {
+  const source = await readFile(rootNodePath, "utf8");
+  const css = await readFile("public/keiazo-root.css", "utf8");
+  assert.match(source, /Math\.min\(e\s*\/\s*430,\s*t\s*\/\s*700\)/);
+  assert.match(source, /\(l\.y-c-a-12\*r\)\/5/);
+  assert.match(css, /\.solo-shell:not\(\.desktop\)[\s\S]*height: 100dvh/);
+});
+
+test("screen taps open the Liquid Glass action menu", async () => {
+  const source = await readFile("public/liquid-glass.js", "utf8");
+  assert.match(source, /Upload new photo\/video/);
+  assert.match(source, /Return to Home Screen/);
+  assert.match(source, /Enable full screen/);
+  assert.match(source, /Download the code/);
+  assert.match(source, /event\.stopImmediatePropagation\(\)/);
+  assert.match(source, /\(5\.0 \+ 13\.0 \* edge\) \* edge/);
+  assert.match(source, /1000 \/ 30/);
+});
+
+test("custom-domain metadata and light-button contrast are current", async () => {
+  const html = await readFile("public/index.html", "utf8");
+  const source = await readFile(rootNodePath, "utf8");
+  const css = await readFile("public/keiazo-root.css", "utf8");
+  assert.match(html, /https:\/\/iphonesolo\.com\//);
+  assert.doesNotMatch(html, /solotilt\.com/);
+  assert.doesNotMatch(source, /solotilt\.com/);
+  assert.match(
+    css,
+    /#motion-permission button[\s\S]*color: #15181d !important/,
+  );
+});
+
+test("language options keep English and Spanish first and include new locales", async () => {
+  const runtime = await readFile(
+    "public/experiment/_app/immutable/chunks/NmbfL6iO.js",
+    "utf8",
+  );
+  const source = await readFile(rootNodePath, "utf8");
+  assert.match(runtime, /n\s*=\s*\[\s*`en`,\s*`es`,/);
+  for (const [locale, label] of [
+    ["de", "Deutsch"],
+    ["ru", "Русский"],
+    ["id", "Bahasa Indonesia"],
+    ["hi", "हिन्दी"],
+    ["bn", "বাংলা"],
+    ["te", "తెలుగు"],
+    ["mr", "मराठी"],
+    ["ta", "தமிழ்"],
+    ["ur", "اردو"],
+    ["gu", "ગુજરાતી"],
+    ["kn", "ಕನ್ನಡ"],
+    ["ml", "മലയാളം"],
+    ["pa", "ਪੰਜਾਬੀ"],
+  ]) {
+    assert.match(runtime, new RegExp("`" + locale + "`"));
+    assert.match(source, new RegExp(locale + ":\\s*`" + label + "`"));
+  }
 });
 
 test("video uploads use the guarded canvas-frame pipeline", async () => {

@@ -19,6 +19,9 @@ This checklist captures the requested migration and customization work for the c
 - [x] Add Traid as its own tile → `https://traid.ing` using the supplied AI Trading app artwork.
 - [x] Crop/compose every replacement icon for the source crop used by the existing canvas renderer so no artwork is clipped or padded incorrectly.
 - [x] Version every home-screen asset URL so iPhone/Safari clients replace cached X and Xiaohongshu artwork.
+- [x] Put YouTube in PinchKey's former slot and link it to the Asaday channel.
+- [x] Move PinchKey beneath Traid, immediately left of TikTok.
+- [x] Move GitHub beside Threads.
 
 ## Wallpaper
 
@@ -30,6 +33,29 @@ This checklist captures the requested migration and customization work for the c
 - [x] Apply the treatment to the initial Enable Motion card without changing its layout/aspect ratio.
 - [x] Apply the same visual language to Settings, fullscreen/help dialogs, QR/popover cards, alerts, and similar popup surfaces.
 - [x] Preserve reduced-transparency and increased-contrast accessibility fallbacks.
+- [x] Port the church navbar's WebGL rounded-SDF refraction, edge displacement, directional rim, and live scene capture to the motion/fullscreen/quick-menu surfaces.
+
+## Screen interaction menu
+
+- [x] Replace tap-to-pause with a centered action menu for images and videos.
+- [x] Add Upload, Return to Home Screen, Fullscreen/Add to Home Screen, and Download Code actions.
+- [x] Close the menu when its backdrop is tapped.
+
+## Responsive viewport
+
+- [x] Size the mobile scene to the current dynamic visual viewport.
+- [x] Distribute rows from the viewing device's live aspect ratio instead of a fixed 430 x 900 reference.
+
+## Custom domain and contrast
+
+- [x] Use dark foreground text on the light Enable Motion and fullscreen-card buttons.
+- [x] Update canonical, Open Graph, Twitter image, analytics, and visible site references to `iphonesolo.com`.
+
+## Languages
+
+- [x] Keep English and Spanish as the first two language choices.
+- [x] Add German, Russian, and Indonesian.
+- [x] Add Hindi, Bengali, Telugu, Marathi, Tamil, Urdu, Gujarati, Kannada, Malayalam, and Punjabi with English UI fallback.
 
 ## Video upload reliability
 
