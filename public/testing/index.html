@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+    <meta name="theme-color" content="#050609" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Turn a photo or video into a motion-tracked perspective illusion." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Keiazo Tilt" />
+    <link rel="manifest" href="/app.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="stylesheet" href="/assets/style.css" />
+    <title>Keiazo Tilt</title>
+  </head>
+  <body>
+    <main id="app" class="app" data-controls="open">
+      <canvas id="gl" aria-label="Motion-controlled perspective image"></canvas>
+
+      <div class="ambient" aria-hidden="true"></div>
+
+      <section class="controls" aria-label="Image controls">
+        <button id="toggle-controls" class="icon-button" type="button" aria-expanded="true" aria-controls="control-panel" aria-label="Toggle image controls">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M9 17h6" /></svg>
+        </button>
+
+        <div id="control-panel" class="control-panel">
+          <label class="button primary" for="media-picker">Choose photo or video</label>
+          <input id="media-picker" type="file" accept="image/*,video/*" hidden />
+          <button id="motion" class="button" type="button">Enable motion</button>
+          <button id="fullscreen" class="button" type="button">Fullscreen</button>
+          <button id="recalibrate" class="button quiet" type="button" hidden>Recalibrate</button>
+          <button id="hide-ui" class="button quiet" type="button">Hide UI until refresh</button>
+        </div>
+      </section>
+
+      <section class="tuning" aria-label="Effect settings">
+        <button id="tuning-toggle" class="icon-button tuning-toggle" type="button" aria-expanded="false" aria-controls="tuning-panel" aria-label="Open effect settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 12h2M10 12h10M4 17h7M15 17h5" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="12" r="2" /><circle cx="13" cy="17" r="2" /></svg>
+        </button>
+
+        <aside id="tuning-panel" class="tuning-panel" aria-hidden="true" inert>
+          <header class="tuning-header">
+            <div>
+              <span class="eyebrow">Live renderer</span>
+              <h2>Effect settings</h2>
+            </div>
+            <button id="tuning-close" class="panel-close" type="button" aria-label="Close effect settings">×</button>
+          </header>
+
+          <div class="history-controls" aria-label="Settings history">
+            <button id="settings-undo" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5M5 12h8a6 6 0 0 1 6 6" /></svg>
+              Undo
+            </button>
+            <button id="settings-redo" type="button" disabled>
+              Redo
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7 5 5-5 5M19 12h-8a6 6 0 0 0-6 6" /></svg>
+            </button>
+          </div>
+
+          <div class="parameter-list">
+            <label class="parameter"><span><b>Horizontal stretch</b><output data-output="horizontalStretch">1.09</output></span><input data-setting="horizontalStretch" type="range" min="0" max="4" step="0.01" value="1.09" /></label>
+            <label class="parameter"><span><b>Perspective skew</b><output data-output="perspectiveSkew">0.70</output></span><input data-setting="perspectiveSkew" type="range" min="-1" max="1" step="0.01" value="0.7" /></label>
+            <label class="parameter"><span><b>Vertical compression</b><output data-output="verticalCompression">1.18</output></span><input data-setting="verticalCompression" type="range" min="0" max="2" step="0.01" value="1.18" /></label>
+            <label class="parameter"><span><b>Vertical displacement</b><output data-output="verticalDisplacement">+36%</output></span><input data-setting="verticalDisplacement" data-format="signed-percent" type="range" min="-0.5" max="0.5" step="0.01" value="0.36" /></label>
+            <label class="parameter"><span><b>Rotation influence</b><output data-output="rotationInfluence">100%</output></span><input data-setting="rotationInfluence" data-format="percent" type="range" min="0" max="2" step="0.01" value="1" /></label>
+            <label class="parameter"><span><b>Transform falloff</b><output data-output="transformFalloff">1.03</output></span><input data-setting="transformFalloff" type="range" min="0.2" max="4" step="0.01" value="1.03" /></label>
+            <label class="parameter"><span><b>Darkness gradient</b><output data-output="darknessGradient">2.21</output></span><input data-setting="darknessGradient" type="range" min="0" max="5" step="0.01" value="2.21" /></label>
+            <label class="parameter"><span><b>Darkness falloff</b><output data-output="darknessFalloff">0.72</output></span><input data-setting="darknessFalloff" type="range" min="0.2" max="4" step="0.01" value="0.72" /></label>
+            <label class="parameter"><span><b>Gaussian blur strength</b><output data-output="gaussianBlurStrength">310%</output></span><input data-setting="gaussianBlurStrength" data-format="percent" type="range" min="0" max="4" step="0.01" value="3.1" /></label>
+            <label class="parameter"><span><b>Gaussian blur size</b><output data-output="gaussianBlurSize">100 px</output></span><input data-setting="gaussianBlurSize" data-format="pixels" type="range" min="0" max="200" step="1" value="100" /></label>
+            <label class="parameter"><span><b>WebGL blur samples</b><output data-output="gaussianBlurSamples">33 taps</output></span><input data-setting="gaussianBlurSamples" data-format="samples" type="range" min="3" max="65" step="2" value="33" /><small>More taps smooth stretched pixels but use more GPU.</small></label>
+            <label class="parameter"><span><b>Blur falloff</b><output data-output="gaussianBlurFalloff">0.43</output></span><input data-setting="gaussianBlurFalloff" type="range" min="0.2" max="4" step="0.01" value="0.43" /></label>
+            <label class="parameter switch-parameter"><span><b>Extra nonlinear falloff</b><small>Applies an additional S-curve to every distance falloff.</small></span><input data-setting="nonlinearFalloff" type="checkbox" role="switch" checked /></label>
+          </div>
+
+          <div class="json-controls">
+            <button id="show-settings" class="button primary" type="button" aria-expanded="false" aria-controls="settings-json-wrap">Show settings JSON</button>
+            <div id="settings-json-wrap" class="settings-json-wrap" hidden>
+              <pre id="settings-json" tabindex="0"></pre>
+              <button id="copy-settings" class="button" type="button">Copy JSON</button>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <div id="hint" class="hint" role="status" aria-live="polite">
+        <strong>Choose a photo or video</strong>
+        <span>Rotate your phone to shift perspective. Tap video to pause or play.</span>
+      </div>
+
+      <div id="toast" class="toast" role="alert" aria-live="assertive" hidden></div>
+
+      <dialog id="motion-dialog">
+        <div class="motion-mark" aria-hidden="true">↔</div>
+        <h1>Move your phone. Shift the view.</h1>
+        <p>Keiazo Tilt uses your phone’s motion sensor to give your photo or video a responsive perspective effect. Your motion data stays on this device.</p>
+        <button class="button primary motion-continue" type="button">Enable device tilt</button>
+        <button class="text-button motion-skip" type="button">Continue without motion</button>
+      </dialog>
+
+      <dialog id="install-dialog">
+        <button class="dialog-close" type="button" aria-label="Close">×</button>
+        <div class="install-mark" aria-hidden="true">↗</div>
+        <h1>Make it feel native</h1>
+        <p>Like the effect? In Safari, tap Share, then <strong>Add to Home Screen</strong>. Reopen it there for the cleanest full-screen experience.</p>
+        <button class="button primary dialog-done" type="button">Got it</button>
+      </dialog>
+
+      <noscript>This experience requires JavaScript.</noscript>
+    </main>
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>
