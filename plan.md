@@ -49,10 +49,14 @@ This checklist captures the requested migration and customization work for the c
 - [x] Size the mobile scene to the current dynamic visual viewport.
 - [x] Distribute rows from the viewing device's live aspect ratio instead of a fixed 430 x 900 reference.
 
-## Custom domain and contrast
+## Custom domain and branding
 
 - [x] Use dark foreground text on the light Enable Motion and fullscreen-card buttons.
 - [x] Update canonical, Open Graph, Twitter image, analytics, and visible site references to `iphonesolo.com`.
+- [x] Rename title, description, Open Graph/Twitter metadata, PWA name, `/code` branding, and Stripe checkout product copy to `iPhone Solo`.
+- [x] Stamp every Hosting release with the deploying Git commit SHA.
+- [x] Serve `/deploy-version.txt` with no-store caching.
+- [x] Fail deployment verification unless `https://iphonesolo.com` serves the exact Git SHA plus the current root and `/code` titles.
 
 ## Languages
 
