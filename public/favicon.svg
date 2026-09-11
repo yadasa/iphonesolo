@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Vertically split apple">
+  <defs>
+    <clipPath id="left-half"><rect width="31.5" height="64" /></clipPath>
+    <clipPath id="right-half"><rect x="32.5" width="31.5" height="64" /></clipPath>
+    <path id="apple-mark" d="M32 21.1c-3.3 0-6.2-2.4-10.5-2.4C12.9 18.7 7 25.6 7 34c0 7.6 5.5 20.8 13.1 20.8 4 0 6.7-2.8 11.9-2.8s7.8 2.8 11.9 2.8C51.5 54.8 57 41.6 57 34c0-8.4-5.9-15.3-14.5-15.3-4.3 0-7.2 2.4-10.5 2.4Z" />
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#08090c" />
+  <g clip-path="url(#left-half)" fill="#ffffff">
+    <use href="#apple-mark" />
+    <path d="M31.2 17.1c.3-6.2 4-10.2 10.7-11.3-.2 6-4 10.5-10.7 11.3Z" />
+  </g>
+  <g clip-path="url(#right-half)" fill="#aeb4bf">
+    <use href="#apple-mark" />
+    <path d="M31.2 17.1c.3-6.2 4-10.2 10.7-11.3-.2 6-4 10.5-10.7 11.3Z" />
+  </g>
+  <circle cx="51.5" cy="26.5" r="6.4" fill="#08090c" />
+</svg>

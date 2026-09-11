@@ -76,7 +76,7 @@ test("home-screen artwork URLs are versioned to replace stale iOS icons", async 
   const source = await readFile(rootNodePath, "utf8");
   assert.match(
     source,
-    /home-screen\/\$\{\w+\}[\s\S]{0,160}\?v=keiazo-20260911-4/,
+    /home-screen\/\$\{\w+\}[\s\S]{0,160}\?v=keiazo-20260911-5/,
   );
 });
 
@@ -102,7 +102,7 @@ test("home-screen products occupy the requested slots", async () => {
   }
   assert.match(
     await readFile("public/home-screen/youtube.svg", "utf8"),
-    /viewBox="0 0 1024 1024"/,
+    /width="1024"[\s\S]*height="1024"[\s\S]*viewBox="0 0 1024 1024"/,
   );
 });
 
