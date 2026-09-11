@@ -65,6 +65,24 @@ function isPaidCodeSession(session) {
   );
 }
 
+exports.codeHealth = onRequest(
+  { region: REGION, maxInstances: 4, timeoutSeconds: 15 },
+  async (req, res) => {
+    if (req.method !== "GET") {
+      res.set("Allow", "GET");
+      return sendJson(res, 405, { error: "method_not_allowed" });
+    }
+
+    try {
+      await stripeRequest("/account");
+      return sendJson(res, 200, { ready: true });
+    } catch (error) {
+      console.error("codeHealth failed", error?.message || error);
+      return sendJson(res, 503, { ready: false, error: "stripe_unavailable" });
+    }
+  },
+);
+
 exports.codeCheckout = onRequest(
   { region: REGION, maxInstances: 10, timeoutSeconds: 30 },
   async (req, res) => {
