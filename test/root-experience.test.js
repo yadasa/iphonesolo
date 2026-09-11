@@ -132,7 +132,7 @@ test("online-user widget is backed by Firebase presence", async () => {
   assert.match(source, /\w+\s*-\s*\w+\.seenAt\s*<\s*6e4/);
   assert.doesNotMatch(source, /\/api\/audience/);
   assert.match(rules, /"presence"/);
-  assert.match(rules, /newData\.hasOnly/);
+  assert.match(rules, /newData\.numChildren\(\) == 3/);
   assert.match(workflow, /deploy --only database/);
   assert.match(workflow, /continue-on-error: true/);
 });
