@@ -57,16 +57,37 @@ jobs:
         continue-on-error: true
         run: npx --yes firebase-tools deploy --only database --project "$FIREBASE_PROJECT_ID" --non-interactive
 
-      - name: Deploy Stripe checkout functions
+      - name: Validate Stripe configuration
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
           if [ -z "$STRIPE_SECRET_KEY" ]; then
-            echo "STRIPE_SECRET_KEY is not configured for this repository; skipping Stripe functions deployment."
-            exit 0
+            echo "::error::STRIPE_SECRET_KEY is missing. Add it once under GitHub Actions repository secrets."
+            exit 1
           fi
+          case "$STRIPE_SECRET_KEY" in
+            sk_test_*|sk_live_*) ;;
+            *)
+              echo "::error::STRIPE_SECRET_KEY does not look like a Stripe secret key."
+              exit 1
+              ;;
+          esac
+          status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+            -H "Authorization: Bearer $STRIPE_SECRET_KEY" \
+            https://api.stripe.com/v1/account || true)"
+          if [ "$status" != "200" ]; then
+            echo "::error::Stripe rejected STRIPE_SECRET_KEY (HTTP $status). Replace the GitHub secret with a valid Stripe secret key."
+            exit 1
+          fi
+          echo "Stripe key validated; no Stripe product, price, or webhook setup is required."
+
+      - name: Deploy Stripe checkout functions
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
           trap 'rm -f functions/.env' EXIT
           printf 'STRIPE_SECRET_KEY=%s\n' "$STRIPE_SECRET_KEY" > functions/.env
+          chmod 600 functions/.env
           npx --yes firebase-tools@latest deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
 
       - name: Stamp deployment
@@ -81,20 +102,37 @@ jobs:
           target: keiazotilt
           channelId: live
 
+      - name: Verify Stripe donation backend
+        run: |
+          for attempt in $(seq 1 12); do
+            health="$(curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
+              "https://keiazotilt.web.app/api/code-health?sha=${GITHUB_SHA}" || true)"
+            if printf '%s' "$health" | grep -Fq '"ready":true'; then
+              echo "Stripe donation backend is live and authenticated."
+              exit 0
+            fi
+            echo "Waiting for Stripe functions/Hosting rewrite propagation (attempt ${attempt}/12)..."
+            sleep 5
+          done
+          echo "::error::Stripe backend did not become healthy after deployment."
+          exit 1
+
       - name: Verify iphonesolo.com custom domain
         run: |
           for attempt in $(seq 1 18); do
             marker="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/deploy-version.txt?sha=${GITHUB_SHA}" || true)"
             root_html="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/?sha=${GITHUB_SHA}" || true)"
             code_html="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/code?sha=${GITHUB_SHA}" || true)"
+            stripe_health="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/api/code-health?sha=${GITHUB_SHA}" || true)"
             if [ "$marker" = "$GITHUB_SHA" ] \
               && printf '%s' "$root_html" | grep -Fq '<title>iPhone Solo</title>' \
-              && printf '%s' "$code_html" | grep -Fq '<title>Get the code · iPhone Solo</title>'; then
-              echo "iphonesolo.com is serving commit ${GITHUB_SHA}."
+              && printf '%s' "$code_html" | grep -Fq '<title>Get the code · iPhone Solo</title>' \
+              && printf '%s' "$stripe_health" | grep -Fq '"ready":true'; then
+              echo "iphonesolo.com is serving commit ${GITHUB_SHA} with a healthy Stripe backend."
               exit 0
             fi
             echo "Waiting for iphonesolo.com to serve ${GITHUB_SHA} (attempt ${attempt}/18)..."
             sleep 10
           done
-          echo "iphonesolo.com did not serve the deployed commit within the verification window."
+          echo "::error::iphonesolo.com did not serve the deployed commit and Stripe backend within the verification window."
           exit 1
