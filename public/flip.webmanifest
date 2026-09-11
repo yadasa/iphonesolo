@@ -2,10 +2,10 @@
   "id": "/",
   "name": "iPhone Solo",
   "short_name": "iPhone Solo",
-  "description": "Tilt your iPhone and watch perspective shift in real time with a motion-powered optical illusion.",
+  "description": "iPhone Solo turns your screen into a motion-powered optical illusion. Tilt your iPhone and watch perspective shift in real time.",
   "start_url": "/",
   "scope": "/",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#050609",
   "theme_color": "#050609",
   "icons": [

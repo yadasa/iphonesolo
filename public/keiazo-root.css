@@ -1,4 +1,6 @@
 :root {
+  --keiazo-viewport-width: 100vw;
+  --keiazo-viewport-height: 100dvh;
   --keiazo-glass-blur: 22px;
   --keiazo-glass-saturation: 145%;
   --keiazo-glass-fill: rgba(19, 24, 34, 0.52);
@@ -17,17 +19,21 @@
 .solo-shell:not(.desktop) .device-body,
 .solo-shell:not(.desktop) .device-screen {
   position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100dvh;
+  inset: 0 auto auto 0;
+  width: var(--keiazo-viewport-width);
+  height: var(--keiazo-viewport-height);
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
   overflow: hidden;
 }
 
 .solo-shell:not(.desktop) #gl,
 .solo-shell:not(.desktop) .chrome,
 .solo-shell:not(.desktop) .dock-interaction {
-  width: 100vw;
-  height: 100dvh;
+  width: var(--keiazo-viewport-width);
+  height: var(--keiazo-viewport-height);
 }
 
 /* Garden-inspired Liquid Glass surfaces. These selectors intentionally change
@@ -330,4 +336,22 @@ dialog[aria-labelledby="fullscreen-help-title"] button {
     background: #111722;
     border-color: rgba(255, 255, 255, 0.76) !important;
   }
+}
+
+
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    margin: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    background: #050609;
+  }
+}
+
+.solo-shell:not(.desktop) dialog {
+  max-height: calc(var(--keiazo-viewport-height) - 32px);
 }

@@ -1,11 +1,17 @@
+const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const admin = require("firebase-admin");
 const functions = require("firebase-functions/v1");
+
+if (!admin.apps.length) admin.initializeApp();
+const firestore = admin.firestore();
 
 const REGION = "us-central1";
 const PRODUCT_KEY = "iphonesolo-source-code";
 const DOWNLOAD_FILENAME = "iphonesolo-source.zip";
 const DOWNLOAD_PATH = path.join(__dirname, "downloads", DOWNLOAD_FILENAME);
+const DOWNLOAD_CLAIMS = "codeDownloadClaims";
 const ALLOWED_ORIGINS = new Set([
   "https://iphonesolo.com",
   "https://keiazotilt.web.app",
@@ -71,6 +77,30 @@ function isPaidCodeSession(session) {
   );
 }
 
+function downloadClaimRef(id) {
+  const digest = createHash("sha256").update(id).digest("hex");
+  return firestore.collection(DOWNLOAD_CLAIMS).doc(digest);
+}
+
+async function downloadWasClaimed(id) {
+  return (await downloadClaimRef(id).get()).exists;
+}
+
+async function claimDownload(id, session) {
+  const ref = downloadClaimRef(id);
+  return firestore.runTransaction(async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (existing.exists) return false;
+    transaction.create(ref, {
+      product: PRODUCT_KEY,
+      claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+      amountTotal: Number(session.amount_total) || null,
+      currency: typeof session.currency === "string" ? session.currency : null,
+    });
+    return true;
+  });
+}
+
 exports.codeHealth = httpFunction(
   { maxInstances: 4, timeoutSeconds: 15 },
   async (req, res) => {
@@ -83,14 +113,19 @@ exports.codeHealth = httpFunction(
       const [archive] = await Promise.all([
         fs.promises.stat(DOWNLOAD_PATH),
         stripeRequest("/account"),
+        downloadClaimRef("health-check").get(),
       ]);
       if (!archive.isFile() || archive.size < 1024) {
         throw new Error("source_archive_missing");
       }
-      return sendJson(res, 200, { ready: true, archiveReady: true });
+      return sendJson(res, 200, {
+        ready: true,
+        archiveReady: true,
+        downloadLedgerReady: true,
+      });
     } catch (error) {
       console.error("codeHealth failed", error?.message || error);
-      return sendJson(res, 503, { ready: false, error: "stripe_unavailable" });
+      return sendJson(res, 503, { ready: false, error: "backend_unavailable" });
     }
   },
 );
@@ -175,12 +210,15 @@ exports.codeVerify = httpFunction(
         `/checkout/sessions/${encodeURIComponent(id)}`,
       );
       const paid = isPaidCodeSession(session);
+      const downloaded = paid ? await downloadWasClaimed(id) : false;
       return sendJson(res, 200, {
         paid,
+        downloaded,
         amountTotal: paid ? session.amount_total : null,
-        downloadUrl: paid
-          ? `/api/code-download?session_id=${encodeURIComponent(id)}`
-          : null,
+        downloadUrl:
+          paid && !downloaded
+            ? `/api/code-download?session_id=${encodeURIComponent(id)}`
+            : null,
       });
     } catch (error) {
       console.error("codeVerify failed", error?.message || error);
@@ -215,7 +253,12 @@ exports.codeDownload = httpFunction(
       if (!archive.isFile() || archive.size < 1024) {
         return sendJson(res, 503, { error: "download_not_ready" });
       }
+      const claimed = await claimDownload(id, session);
+      if (!claimed) {
+        return sendJson(res, 409, { error: "download_already_used" });
+      }
       res.set("Cache-Control", "private, no-store, max-age=0");
+      res.set("X-Download-Redemption", "single-use");
       res.set("Content-Type", "application/zip");
       res.set(
         "Content-Disposition",

@@ -106,6 +106,7 @@ async function verifyPaidSession(sessionId) {
         { headers: { Accept: "application/json" }, cache: "no-store" },
       );
       const data = await response.json().catch(() => ({}));
+      if (response.ok && data.downloaded) return { downloaded: true };
       if (response.ok && data.paid && data.downloadUrl) return data;
     } catch {
       // Short-lived network/cold-start failures are retried below.
@@ -135,8 +136,13 @@ async function resumeAfterCheckout() {
     setStatus("Your payment is still being confirmed. Refreshing will retry automatically.");
     return;
   }
+  if (data.downloaded) {
+    setStatus("This payment’s single download has already been used.");
+    history.replaceState({}, "", "/code");
+    return;
+  }
 
-  setStatus("Payment received — your code download is starting now.");
+  setStatus("Payment received — your one-time code download is starting now.");
   history.replaceState({}, "", "/code");
   await wait(250);
   window.location.assign(data.downloadUrl);

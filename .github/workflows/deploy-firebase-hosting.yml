@@ -35,7 +35,7 @@ jobs:
             echo "::error::Private deployment files leaked into the source archive."
             exit 1
           fi
-          if unzip -p functions/downloads/iphonesolo-source.zip iphonesolo-source/index.html | grep -Fq 'umami.gnimoay.com'; then
+          if unzip -p functions/downloads/iphonesolo-source.zip iphonesolo-source/index.html | grep -Eq 'umami\.gnimoay\.com|googletagmanager\.com|/ga4\.js'; then
             echo "::error::Analytics configuration leaked into the source archive."
             exit 1
           fi

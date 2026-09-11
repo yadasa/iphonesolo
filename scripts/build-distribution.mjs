@@ -16,6 +16,7 @@ const EXCLUDED_TOP_LEVEL = new Set([
   "code",
   "testing",
   "code-gate.js",
+  "ga4.js",
   "deploy-version.txt",
 ]);
 const SOURCE_VERSION = process.env.SOURCE_VERSION || "local";
@@ -50,6 +51,7 @@ function cleanIndex(source) {
       /\s*<script\s+[\s\S]*?src="https:\/\/umami\.gnimoay\.com\/script\.js"[\s\S]*?<\/script>/g,
       "",
     )
+    .replace(/\s*<script\s+defer\s+src="\/ga4\.js[^"]*"\s*><\/script>/g, "")
     .replace(/\s*data-website-id="[^"]*"/g, "")
     .replace(/\s*data-domains="[^"]*"/g, "");
 }

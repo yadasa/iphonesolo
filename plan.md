@@ -130,3 +130,12 @@ This checklist captures the requested migration and customization work for the c
 - [x] Make Enable Motion acquire the same Liquid Glass shader as Settings only when opened.
 - [x] Release inactive dialog WebGL contexts so iOS cannot leave the first permission card with a blank surface.
 - [x] Add a 1.5px blur and 4.5% white finish to Settings without replacing its refractive shader.
+
+## Analytics, installed viewport, and download redemption
+
+- [x] Remove the legacy Umami tracker instead of double-counting alongside GA4.
+- [x] Load GA4 from the Measurement ID exposed by this Firebase project's reserved configuration endpoint.
+- [x] Track root and /code page views without embedding another project's analytics ID in source.
+- [x] Make the Add to Home Screen build use standalone display mode and the same measured visual viewport as the website.
+- [x] Reserve the iOS status bar instead of changing the renderer's usable aspect ratio with an overlay.
+- [x] Enforce one source archive response per paid Stripe Checkout Session with an atomic Firestore claim.

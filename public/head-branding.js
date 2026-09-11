@@ -61,6 +61,7 @@
 
       upsertMeta("name", "description", BRAND.description);
       upsertMeta("name", "apple-mobile-web-app-title", "iPhone Solo");
+      upsertMeta("name", "apple-mobile-web-app-status-bar-style", "black");
 
       upsertMeta("property", "og:type", "website");
       upsertMeta("property", "og:site_name", "iPhone Solo");
