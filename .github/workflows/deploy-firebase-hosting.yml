@@ -193,9 +193,9 @@ jobs:
       - name: Verify iphonesolo.com custom domain
         run: |
           for attempt in $(seq 1 18); do
-            marker="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/deploy-version.txt?sha=${GITHUB_SHA}" || true)"
-            root_html="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/?sha=${GITHUB_SHA}" || true)"
-            code_html="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://iphonesolo.com/code?sha=${GITHUB_SHA}" || true)"
+            marker="$(curl -fsSL --max-time 15 --resolve iphonesolo.com:443:199.36.158.100 -H 'Cache-Control: no-cache' "https://iphonesolo.com/deploy-version.txt?sha=${GITHUB_SHA}" || true)"
+            root_html="$(curl -fsSL --max-time 15 --resolve iphonesolo.com:443:199.36.158.100 -H 'Cache-Control: no-cache' "https://iphonesolo.com/?sha=${GITHUB_SHA}" || true)"
+            code_html="$(curl -fsSL --max-time 15 --resolve iphonesolo.com:443:199.36.158.100 -H 'Cache-Control: no-cache' "https://iphonesolo.com/code?sha=${GITHUB_SHA}" || true)"
             if [ "$marker" = "$GITHUB_SHA" ] \
               && printf '%s' "$root_html" | grep -Fq '<title>iPhone Solo</title>' \
               && printf '%s' "$code_html" | grep -Fq '<title>Get the code · iPhone Solo</title>'; then
