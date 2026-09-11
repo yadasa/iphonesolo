@@ -112,6 +112,7 @@ dialog[aria-labelledby="fullscreen-help-title"].keiazo-liquid-ready {
 
 /* Preserve the refractive shader while giving Settings a barely-there soft,
    luminous finish over the sampled scene. */
+#motion-permission.keiazo-liquid-ready::after,
 #settings-dialog.keiazo-liquid-ready::after {
   content: "";
   position: absolute;
