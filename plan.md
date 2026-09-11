@@ -119,6 +119,7 @@ This checklist captures the requested migration and customization work for the c
 - [x] Replace the Spotify preview card with the live rank-one ad from `https://thehighest.bid/api/embed?limit=1`.
 - [x] Use the feed's tracked `clickUrl`, square creative or favicon metadata, title, label, and description.
 - [x] Show the dynamic permanent-number-one entry price above the card.
+- [x] Link the acquisition text above the advertisement directly to `https://thehighest.bid/`, independently of the winning ad's tracked click target.
 - [x] Clip metadata to the existing rounded rectangle and auto-scroll overflowing descriptions, pause at the bottom, then snap to the top.
 - [x] Fall back to a branded The Highest Bid call-to-action if the feed or creative is unavailable.
 - [x] Remove the Spotify audio preview and Spotify destination.

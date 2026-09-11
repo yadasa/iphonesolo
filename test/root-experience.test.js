@@ -269,3 +269,12 @@ test("home-screen winner card uses The Highest Bid feed and tracked ad metadata"
   assert.equal(source.includes("open.spotify.com"), false);
   assert.equal(source.includes("p.scdn.co/mp3-preview"), false);
 });
+
+
+test("ad acquisition line links to The Highest Bid independently of the winner", async () => {
+  const source = await readFile(rootNodePath, "utf8");
+  assert.match(source, /y:i\.y-22\*r\.scale,width:i\.width,height:22\*r\.scale/);
+  assert.match(source, /O\(t,"href","https:\/\/thehighest\.bid\/"\)/);
+  assert.match(source, /Bc=adState\.clickUrl/);
+  assert.equal(source.includes('querySelector(".dock-interaction a.product-link")'), false);
+});
