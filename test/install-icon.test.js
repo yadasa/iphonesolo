@@ -68,3 +68,19 @@ test("installed app icons use the versioned iPhone Solo mark", async () => {
     { width: 512, height: 512 },
   );
 });
+
+test("legacy icon fallbacks use the current iPhone Solo mark", async () => {
+  const legacy = await readFile("public/icon.svg", "utf8");
+  assert.match(legacy, /iPhone Solo dissolving Apple mark/);
+  assert.match(legacy, /id="apple-mark"/);
+  assert.match(legacy, /id="dissolve-mask"/);
+  assert.deepEqual(await pngDimensions("public/solo-favicon.png"), {
+    width: 32,
+    height: 32,
+  });
+
+  const ico = await readFile("public/favicon.ico");
+  assert.equal(ico.readUInt16LE(0), 0);
+  assert.equal(ico.readUInt16LE(2), 1);
+  assert.equal(ico.readUInt16LE(4), 3);
+});
