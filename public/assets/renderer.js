@@ -50,6 +50,8 @@ uniform float u_blurSize;
 uniform float u_blurFalloff;
 uniform float u_darknessFalloff;
 uniform float u_nonlinearFalloff;
+uniform int u_blurPairs;
+uniform float u_blurWeights[33];
 in vec2 v_uv;
 out vec4 outColor;
 
@@ -67,15 +69,15 @@ void main() {
   vec2 blurStep = u_texelSize * blurRadius * normalize(vec2(1.0, u_tilt * 0.18));
 
   vec4 sharp = texture(u_texture, uv);
-  vec4 blurred = sharp * 0.20;
-  blurred += texture(u_texture, uv - blurStep * 0.75) * 0.16;
-  blurred += texture(u_texture, uv + blurStep * 0.75) * 0.16;
-  blurred += texture(u_texture, uv - blurStep * 1.5) * 0.13;
-  blurred += texture(u_texture, uv + blurStep * 1.5) * 0.13;
-  blurred += texture(u_texture, uv - blurStep * 2.4) * 0.08;
-  blurred += texture(u_texture, uv + blurStep * 2.4) * 0.08;
-  blurred += texture(u_texture, uv - blurStep * 3.3) * 0.03;
-  blurred += texture(u_texture, uv + blurStep * 3.3) * 0.03;
+  vec4 blurred = sharp * u_blurWeights[0];
+  for (int index = 1; index <= 32; index++) {
+    if (index > u_blurPairs) break;
+    float offset = float(index) / float(max(u_blurPairs, 1));
+    vec2 sampleOffset = blurStep * offset;
+    float weight = u_blurWeights[index];
+    blurred += texture(u_texture, uv - sampleOffset) * weight;
+    blurred += texture(u_texture, uv + sampleOffset) * weight;
+  }
   vec4 color = mix(sharp, blurred, min(u_blurStrength, 1.0));
 
   float shadowGradient = pow(clamp(distanceFromAnchor, 0.0, 1.0), u_darknessFalloff);
@@ -97,6 +99,7 @@ export const DEFAULT_RENDER_SETTINGS = Object.freeze({
   darknessFalloff: 0.72,
   gaussianBlurStrength: 1,
   gaussianBlurSize: 100,
+  gaussianBlurSamples: 17,
   gaussianBlurFalloff: 0.46,
   nonlinearFalloff: false
 });
@@ -130,6 +133,9 @@ export class FoldRenderer {
     this.lastFold = Number.NaN;
     this.lastSide = Number.NaN;
     this.settings = { ...DEFAULT_RENDER_SETTINGS };
+    this.blurPairs = 0;
+    this.blurWeights = new Float32Array(33);
+    this.updateBlurKernel(this.settings.gaussianBlurSamples);
     this.dirty = true;
     this.setupGeometry();
     this.resize();
@@ -173,13 +179,34 @@ export class FoldRenderer {
       blurStrength: uniform("u_blurStrength"),
       blurSize: uniform("u_blurSize"),
       blurFalloff: uniform("u_blurFalloff"),
-      darknessFalloff: uniform("u_darknessFalloff")
+      darknessFalloff: uniform("u_darknessFalloff"),
+      blurPairs: uniform("u_blurPairs"),
+      blurWeights: uniform("u_blurWeights[0]")
     };
   }
 
   setSettings(settings) {
+    const sampleCountChanged = settings.gaussianBlurSamples != null && settings.gaussianBlurSamples !== this.settings.gaussianBlurSamples;
     this.settings = { ...this.settings, ...settings };
+    if (sampleCountChanged) this.updateBlurKernel(this.settings.gaussianBlurSamples);
     this.dirty = true;
+  }
+
+  updateBlurKernel(sampleCount) {
+    const clamped = Math.max(3, Math.min(65, Math.round(sampleCount)));
+    const oddSamples = clamped % 2 === 0 ? clamped - 1 : clamped;
+    const pairs = Math.floor(oddSamples / 2);
+    const sigma = Math.max(0.75, pairs * 0.42);
+    const weights = new Float32Array(33);
+    let total = 0;
+    for (let index = 0; index <= pairs; index += 1) {
+      const weight = Math.exp(-0.5 * (index / sigma) ** 2);
+      weights[index] = weight;
+      total += index === 0 ? weight : weight * 2;
+    }
+    for (let index = 0; index <= pairs; index += 1) weights[index] /= total;
+    this.blurPairs = pairs;
+    this.blurWeights = weights;
   }
 
   setupGeometry() {
@@ -300,6 +327,8 @@ export class FoldRenderer {
     gl.uniform1f(this.locations.blurStrength, this.settings.gaussianBlurStrength);
     gl.uniform1f(this.locations.blurSize, this.settings.gaussianBlurSize);
     gl.uniform1f(this.locations.blurFalloff, this.settings.gaussianBlurFalloff);
+    gl.uniform1i(this.locations.blurPairs, this.blurPairs);
+    gl.uniform1fv(this.locations.blurWeights, this.blurWeights);
     gl.uniform1i(this.locations.hasTexture, this.hasTexture);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);

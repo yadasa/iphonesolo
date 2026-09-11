@@ -64,11 +64,12 @@ function formatSetting(input, value) {
   if (input.dataset.format === "percent") return `${Math.round(value * 100)}%`;
   if (input.dataset.format === "signed-percent") return `${value > 0 ? "+" : ""}${Math.round(value * 100)}%`;
   if (input.dataset.format === "pixels") return `${Math.round(value)} px`;
+  if (input.dataset.format === "samples") return `${Math.round(value)} taps`;
   return Number(value).toFixed(2);
 }
 
 function settingsPayload() {
-  return JSON.stringify({ version: 2, settings: renderSettings }, null, 2);
+  return JSON.stringify({ version: 3, settings: renderSettings }, null, 2);
 }
 
 function updateHistoryControls() {

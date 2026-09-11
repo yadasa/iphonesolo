@@ -102,6 +102,11 @@
               <input data-setting="gaussianBlurSize" data-format="pixels" type="range" min="0" max="200" step="1" value="100" />
             </label>
             <label class="parameter">
+              <span><b>WebGL blur samples</b><output data-output="gaussianBlurSamples">17 taps</output></span>
+              <input data-setting="gaussianBlurSamples" data-format="samples" type="range" min="3" max="65" step="2" value="17" />
+              <small>More taps smooth stretched pixels but use more GPU.</small>
+            </label>
+            <label class="parameter">
               <span><b>Blur falloff</b><output data-output="gaussianBlurFalloff">0.46</output></span>
               <input data-setting="gaussianBlurFalloff" type="range" min="0.2" max="4" step="0.01" value="0.46" />
             </label>
