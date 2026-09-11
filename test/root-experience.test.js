@@ -69,10 +69,10 @@ test("home-screen credit names keiazo in initial and hydrated UI", async () => {
     readFile("public/index.html", "utf8"),
   ]);
   assert.match(source, /built by/);
-  assert.match(source, /<strong>keiazo<\\/strong>/);
-  assert.match(html, /built by <strong>keiazo<\\/strong>/);
+  assert.ok(source.includes("<strong>keiazo</strong>"));
+  assert.ok(html.includes("built by <strong>keiazo</strong>"));
   for (const markup of [source, html]) {
-    assert.doesNotMatch(markup, /<strong>Envl<\\/strong>/);
+    assert.equal(markup.includes("<strong>Envl</strong>"), false);
   }
 });
 
