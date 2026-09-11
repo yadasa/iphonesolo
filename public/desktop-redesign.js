@@ -20,6 +20,17 @@
     if (shell.dataset.desktopRedesign === "true") return true;
     shell.dataset.desktopRedesign = "true";
 
+    const gradientField = document.createElement("div");
+    gradientField.className = "keiazo-gradient-field";
+    gradientField.setAttribute("aria-hidden", "true");
+    gradientField.innerHTML = `
+      <span class="keiazo-gradient-blob keiazo-gradient-blob--violet"></span>
+      <span class="keiazo-gradient-blob keiazo-gradient-blob--blue"></span>
+      <span class="keiazo-gradient-blob keiazo-gradient-blob--cyan"></span>
+      <span class="keiazo-gradient-blob keiazo-gradient-blob--ember"></span>
+    `;
+    shell.prepend(gradientField);
+
     const story = document.createElement("section");
     story.className = "keiazo-desktop-story";
     story.setAttribute("aria-labelledby", "keiazo-desktop-title");
