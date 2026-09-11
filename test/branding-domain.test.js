@@ -69,7 +69,7 @@ test("canonical branding survives Svelte head hydration", async () => {
     readFile("public/head-branding.js", "utf8"),
   ]);
 
-  assert.match(start, /\/head-branding\.js\?v=20260911-1/);
+  assert.match(start, /\/head-branding\.js\?v=20260911-2/);
   assert.match(branding, /MutationObserver/);
   assert.match(branding, /summary_large_image/);
   assert.match(branding, /https:\/\/iphonesolo\.com\/og-image\.jpg/);
