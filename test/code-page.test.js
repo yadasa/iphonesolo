@@ -38,7 +38,10 @@ test("Stripe checkout is server-created and paid sessions gate the download", as
   assert.match(server, /process\.env\.STRIPE_SECRET_KEY/);
   assert.match(server, /payment_status === "paid"/);
   assert.match(server, /metadata\?\.product === PRODUCT_KEY/);
-  assert.match(server, /github\.com\/yadasa\/iphonesolo\/archive\/refs\/heads\/main\.zip/);
+  assert.match(server, /downloads", DOWNLOAD_FILENAME/);
+  assert.match(server, /Content-Type", "application\\/zip"/);
+  assert.match(server, /fs\\.createReadStream\\(DOWNLOAD_PATH\\)/);
+  assert.doesNotMatch(server, /archive\\/refs\\/heads\\/main\\.zip/);
   const rewrites = firebase.hosting.rewrites;
   for (const [source, functionId] of [
     ["/api/code-health", "codeHealth"],
@@ -85,4 +88,18 @@ test("existing Download Code action is gated through /code", async () => {
   assert.match(gate, /archive\/refs\/heads\/main\.zip/);
   assert.match(gate, /anchor\.href = "\/code"/);
   assert.match(start, /\/code-gate\.js/);
+});
+
+test("deployment builds a sanitized private distribution archive", async () => {
+  const pkg = JSON.parse(await read("package.json"));
+  const workflow = await read(".github/workflows/deploy-firebase-hosting.yml");
+  const builder = await read("scripts/build-distribution.mjs");
+  assert.equal(pkg.scripts["build:distribution"], "node scripts/build-distribution.mjs");
+  assert.match(workflow, /Build private source archive/);
+  assert.match(workflow, /unzip -t functions\/downloads\/iphonesolo-source\.zip/);
+  assert.match(builder, /EXCLUDED_TOP_LEVEL/);
+  for (const excluded of ["code", "testing", "code-gate.js", "deploy-version.txt"]) {
+    assert.match(builder, new RegExp(`"${excluded.replace(".", "\\.")}"`));
+  }
+  assert.match(builder, /umami\\.gnimoay\\.com/);
 });

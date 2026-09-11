@@ -44,7 +44,20 @@ For GitHub Actions, add this repository secret:
 
 The deployment workflow validates the JavaScript and unit tests, deploys the narrowly scoped presence rules when the project has a default Realtime Database, and then deploys the `public/` directory to the existing `keiazotilt` Hosting site's live channel. It can also be run manually from the Actions tab. The Firebase project's default Realtime Database must be created once in the Firebase console because the Hosting deployment service account cannot enable new Google APIs.
 
+## Paid source distribution
+
+The donation page does not expose this private repository. Each deployment builds a sanitized `iphonesolo-source.zip`, excludes payment/backend/deployment files and analytics configuration, and bundles it inside the Firebase Functions deployment. After Stripe confirms a paid Checkout Session, `codeDownload` streams that exact archive as a private, non-cacheable attachment.
+
+Build the same archive locally with:
+
+```bash
+npm run build:distribution
+```
+
+The generated file is `functions/downloads/iphonesolo-source.zip` and is intentionally not committed.
+
 ## Privacy
+
 
 Imported photos and videos remain inside the browser tab and are never uploaded. The app sends a random browser ID, random tab ID, and server timestamp to Firebase while the page is visible so it can show an approximate unique-browser online count. Stale sessions expire from the displayed count after one minute; no personal information or media is stored, and there is no server-side media processing.
 

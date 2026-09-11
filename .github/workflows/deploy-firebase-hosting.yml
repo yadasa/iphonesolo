@@ -24,6 +24,22 @@ jobs:
         with:
           node-version: 24
 
+      - name: Build private source archive
+        env:
+          SOURCE_VERSION: ${{ github.sha }}
+        run: |
+          npm run build:distribution
+          test -s functions/downloads/iphonesolo-source.zip
+          unzip -t functions/downloads/iphonesolo-source.zip
+          if unzip -Z1 functions/downloads/iphonesolo-source.zip | grep -Eq '^iphonesolo-source/(code/|testing/|functions/|\.github/|firebase\.json$|\.firebaserc$|plan\.md$)'; then
+            echo "::error::Private deployment files leaked into the source archive."
+            exit 1
+          fi
+          if unzip -p functions/downloads/iphonesolo-source.zip iphonesolo-source/index.html | grep -Fq 'umami.gnimoay.com'; then
+            echo "::error::Analytics configuration leaked into the source archive."
+            exit 1
+          fi
+
       - name: Verify application
         run: |
           npm test

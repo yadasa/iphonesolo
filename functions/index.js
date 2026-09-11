@@ -1,9 +1,11 @@
+const fs = require("node:fs");
+const path = require("node:path");
 const functions = require("firebase-functions/v1");
 
 const REGION = "us-central1";
 const PRODUCT_KEY = "iphonesolo-source-code";
-const DOWNLOAD_URL =
-  "https://github.com/yadasa/iphonesolo/archive/refs/heads/main.zip";
+const DOWNLOAD_FILENAME = "iphonesolo-source.zip";
+const DOWNLOAD_PATH = path.join(__dirname, "downloads", DOWNLOAD_FILENAME);
 const ALLOWED_ORIGINS = new Set([
   "https://iphonesolo.com",
   "https://keiazotilt.web.app",
@@ -78,8 +80,14 @@ exports.codeHealth = httpFunction(
     }
 
     try {
-      await stripeRequest("/account");
-      return sendJson(res, 200, { ready: true });
+      const [archive] = await Promise.all([
+        fs.promises.stat(DOWNLOAD_PATH),
+        stripeRequest("/account"),
+      ]);
+      if (!archive.isFile() || archive.size < 1024) {
+        throw new Error("source_archive_missing");
+      }
+      return sendJson(res, 200, { ready: true, archiveReady: true });
     } catch (error) {
       console.error("codeHealth failed", error?.message || error);
       return sendJson(res, 503, { ready: false, error: "stripe_unavailable" });
@@ -203,9 +211,29 @@ exports.codeDownload = httpFunction(
       if (!isPaidCodeSession(session)) {
         return sendJson(res, 403, { error: "payment_required" });
       }
-      res.set("Cache-Control", "no-store");
+      const archive = await fs.promises.stat(DOWNLOAD_PATH);
+      if (!archive.isFile() || archive.size < 1024) {
+        return sendJson(res, 503, { error: "download_not_ready" });
+      }
+      res.set("Cache-Control", "private, no-store, max-age=0");
+      res.set("Content-Type", "application/zip");
+      res.set(
+        "Content-Disposition",
+        `attachment; filename="${DOWNLOAD_FILENAME}"`,
+      );
+      res.set("Content-Length", String(archive.size));
+      res.set("X-Content-Type-Options", "nosniff");
       res.set("X-Robots-Tag", "noindex, nofollow");
-      return res.redirect(302, DOWNLOAD_URL);
+      const stream = fs.createReadStream(DOWNLOAD_PATH);
+      stream.on("error", (streamError) => {
+        console.error("codeDownload stream failed", streamError);
+        if (!res.headersSent) {
+          sendJson(res, 500, { error: "download_unavailable" });
+        } else {
+          res.destroy(streamError);
+        }
+      });
+      return stream.pipe(res);
     } catch (error) {
       console.error("codeDownload failed", error?.message || error);
       return sendJson(res, error?.statusCode === 503 ? 503 : 502, {
