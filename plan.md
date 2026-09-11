@@ -123,3 +123,10 @@ This checklist captures the requested migration and customization work for the c
 - [x] Clip metadata to the existing rounded rectangle and auto-scroll overflowing descriptions, pause at the bottom, then snap to the top.
 - [x] Fall back to a branded The Highest Bid call-to-action if the feed or creative is unavailable.
 - [x] Remove the Spotify audio preview and Spotify destination.
+
+
+## Liquid Glass consistency
+
+- [x] Make Enable Motion acquire the same Liquid Glass shader as Settings only when opened.
+- [x] Release inactive dialog WebGL contexts so iOS cannot leave the first permission card with a blank surface.
+- [x] Add a 1.5px blur and 4.5% white finish to Settings without replacing its refractive shader.

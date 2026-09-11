@@ -92,19 +92,25 @@ dialog[aria-labelledby="fullscreen-help-title"].keiazo-liquid-ready {
   overflow: hidden;
 }
 
-/* The church /option1 WebGL surface owns the finished material. These cards
-   have no CSS blur/tint underneath it once the shader is available. */
-#motion-permission,
-#settings-dialog,
-#keiazo-quick-menu,
-dialog[aria-labelledby="fullscreen-help-title"] {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
+/* The church /option1 WebGL surface owns the finished material. Enable Motion
+   uses the shader directly; Settings receives only the requested subtle finish. */
 .keiazo-liquid-ready > :not(.keiazo-liquid-glass) {
   position: relative;
   z-index: 1;
+}
+
+
+/* Preserve the refractive shader while giving Settings a barely-there soft,
+   luminous finish over the sampled scene. */
+#settings-dialog.keiazo-liquid-ready::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(1.5px);
+  backdrop-filter: blur(1.5px);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .keiazo-liquid-glass {

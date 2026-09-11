@@ -144,8 +144,10 @@
   }
 
   function attachLiquidGlass(dialog) {
-    if (dialog.dataset.liquidGlassAttached) return;
-    dialog.dataset.liquidGlassAttached = "true";
+    if (
+      dialog.dataset.liquidGlassAttached ||
+      dialog.dataset.liquidGlassUnavailable
+    ) return;
     const canvas = document.createElement("canvas");
     canvas.className = "keiazo-liquid-glass";
     canvas.setAttribute("aria-hidden", "true");
@@ -157,7 +159,12 @@
       desynchronized: true,
       powerPreference: "high-performance",
     });
-    if (!gl) return;
+    if (!gl) {
+      dialog.dataset.liquidGlassUnavailable = "true";
+      canvas.remove();
+      return;
+    }
+    dialog.dataset.liquidGlassAttached = "true";
 
     const vertexSource = `
       attribute vec2 a_pos;
@@ -239,6 +246,9 @@
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error();
     } catch (error) {
       console.warn("[liquid-glass] WebGL refraction unavailable", error);
+      dialog.dataset.liquidGlassUnavailable = "true";
+      delete dialog.dataset.liquidGlassAttached;
+      canvas.remove();
       return;
     }
 
@@ -343,7 +353,16 @@
 
     const observer = new MutationObserver(() => {
       cancelAnimationFrame(frame);
-      if (dialog.open) frame = requestAnimationFrame(draw);
+      frame = 0;
+      if (dialog.open) {
+        frame = requestAnimationFrame(draw);
+        return;
+      }
+      observer.disconnect();
+      dialog.classList.remove("keiazo-liquid-ready");
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      canvas.remove();
+      delete dialog.dataset.liquidGlassAttached;
     });
     observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
     if (dialog.open) frame = requestAnimationFrame(draw);
@@ -352,12 +371,26 @@
   function boot() {
     createQuickMenu();
     enhanceLanguagePicker();
-    document.querySelectorAll(TARGET_SELECTOR).forEach(attachLiquidGlass);
+    const attachOpenLiquidGlass = () => {
+      document.querySelectorAll(TARGET_SELECTOR).forEach((dialog) => {
+        if (dialog.open) {
+          attachLiquidGlass(dialog);
+        } else {
+          delete dialog.dataset.liquidGlassUnavailable;
+        }
+      });
+    };
+    attachOpenLiquidGlass();
     const appObserver = new MutationObserver(() => {
       enhanceLanguagePicker();
-      document.querySelectorAll(TARGET_SELECTOR).forEach(attachLiquidGlass);
+      attachOpenLiquidGlass();
     });
-    appObserver.observe(document.body, { childList: true, subtree: true });
+    appObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["open"],
+    });
     const scene = source();
     if (!scene) return;
     scene.addEventListener(

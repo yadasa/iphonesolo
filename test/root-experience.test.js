@@ -278,3 +278,21 @@ test("ad acquisition line links to The Highest Bid independently of the winner",
   assert.match(source, /Bc=adState\.clickUrl/);
   assert.equal(source.includes('querySelector(".dock-interaction a.product-link")'), false);
 });
+
+
+test("Enable Motion lazily acquires the same Liquid Glass renderer as Settings", async () => {
+  const source = await readFile("public/liquid-glass.js", "utf8");
+  const css = await readFile("public/keiazo-root.css", "utf8");
+  assert.match(source, /if \(dialog\.open\) \{\s*attachLiquidGlass\(dialog\)/);
+  assert.match(source, /attributeFilter: \["open"\]/);
+  assert.match(source, /WEBGL_lose_context/);
+  assert.match(source, /delete dialog\.dataset\.liquidGlassAttached/);
+  assert.doesNotMatch(
+    css,
+    /#motion-permission,\s*#settings-dialog[\s\S]*backdrop-filter: none/,
+  );
+  assert.match(
+    css,
+    /#settings-dialog\.keiazo-liquid-ready::after[\s\S]*backdrop-filter: blur\(1\.5px\)[\s\S]*rgba\(255, 255, 255, 0\.045\)/,
+  );
+});
