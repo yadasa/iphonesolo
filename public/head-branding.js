@@ -10,8 +10,8 @@
     imageType: "image/jpeg",
     imageAlt: "The iPhone duo effect, on half the screen",
     favicon: "/favicon.svg?v=20260911-2",
-    appleTouchIcon: "/solo-apple-touch-icon.png",
-    manifest: "/flip.webmanifest",
+    appleTouchIcon: "/iphone-solo-touch-icon-v2.png",
+    manifest: "/flip.webmanifest?v=20260911-2",
   });
 
   const PINCHKEY_URL = "https://pinchkey.lumik.space/";
