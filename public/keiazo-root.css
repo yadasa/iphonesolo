@@ -873,3 +873,24 @@ dialog[aria-labelledby="fullscreen-help-title"] button {
     animation: none !important;
   }
 }
+
+
+/* Reserve a separate desktop area for the preview controls and open QR upward. */
+@media (hover: hover) and (pointer: fine) {
+  .solo-shell.desktop .device-stage {
+    top: 76px;
+    bottom: 140px;
+    height: auto;
+    min-height: 0;
+    transform: none;
+  }
+  .solo-shell.desktop .qr-popover {
+    top: auto;
+    bottom: calc(100% + 12px);
+    left: 0;
+    right: auto;
+    max-width: calc(100vw - 56px);
+    max-height: calc(100dvh - 140px);
+    overflow: auto;
+  }
+}

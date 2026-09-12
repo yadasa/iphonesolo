@@ -288,3 +288,54 @@ exports.codeDownload = httpFunction(
     }
   },
 );
+
+const AUDIENCE_INTERVAL_MS = 10_000;
+
+// One transaction elects the published snapshot for each server-time bucket.
+// Keep this separate from presence so display adjustments never change analytics.
+exports.audienceSnapshot = httpFunction(
+  { maxInstances: 10, timeoutSeconds: 15 },
+  async (req, res) => {
+    if (req.method !== "GET") {
+      res.set("Allow", "GET");
+      return sendJson(res, 405, { error: "method_not_allowed" });
+    }
+    try {
+      const ref = database.ref("audienceDisplay");
+      let snapshot = (await ref.get()).val();
+      if (!snapshot || snapshot.at < Math.floor(Date.now() / AUDIENCE_INTERVAL_MS) * AUDIENCE_INTERVAL_MS) {
+        const presence = (await database.ref("presence").get()).val() || {};
+        const now = Date.now();
+        const at = Math.floor(now / AUDIENCE_INTERVAL_MS) * AUDIENCE_INTERVAL_MS;
+        const clients = new Set(Object.values(presence)
+          .filter(p => p && typeof p.clientId === "string" &&
+            Number.isFinite(p.seenAt) && now - p.seenAt < 60_000 && p.seenAt <= now + 5_000)
+          .map(p => p.clientId));
+        const random = createHash("sha256").update("audience:" + at).digest().readUInt32BE(0) / 0x100000000;
+        const result = await ref.transaction(current => {
+          if (current && current.at >= at) return current;
+          const offset = current
+            ? Math.max(1, Math.round(current.offset * (0.8 + random * 0.4)))
+            : 63;
+          const count = clients.size + offset;
+          const history = (Array.isArray(current?.history) ? current.history : [])
+            .filter(point => point.at > at - 3_600_000).slice(-359);
+          history.push({ at, count });
+          return { at, offset, count, history };
+        }, undefined, false);
+        snapshot = result.snapshot.val();
+      }
+      return sendJson(res, 200, {
+        count: snapshot.count,
+        history: snapshot.history,
+        at: snapshot.at,
+        serverTime: Date.now(),
+        nextUpdateAt: snapshot.at + AUDIENCE_INTERVAL_MS,
+      });
+    } catch (error) {
+      console.error("audienceSnapshot failed", error?.message || error);
+      return sendJson(res, 503, { error: "audience_unavailable" });
+    }
+  },
+);
+
