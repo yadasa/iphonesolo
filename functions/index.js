@@ -322,7 +322,7 @@ exports.audienceSnapshot = httpFunction(
         const result = await ref.transaction(current => {
           if (current && current.at >= at) return current;
           const balancedMode = audienceBalancedMode(current?.count ?? 0, current?.balancedMode === true);
-          const multiplier = balancedMode ? 0.75 + random * 0.43 : 0.83 + random * 0.50;
+          const multiplier = balancedMode ? 0.80 + random * 0.40 : 0.83 + random * 0.50;
           const offset = current
             ? Math.max(1, Math.round(current.offset * multiplier))
             : 63;
@@ -344,9 +344,9 @@ exports.audienceSnapshot = httpFunction(
         if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay));
         const result = await ref.transaction(current => {
           if (!current || current.at !== snapshot.at || current.jitterApplied !== false) return current;
-          // Shared additive range: -6 through +5 in high-count mode, otherwise -6 through +9.
+          // Independent shared variation: integer -6 <= jitter <= 9.
           const jitter = createHash("sha256").update("audience-jitter:" + current.at)
-            .digest().readUInt32BE(0) % (current.balancedMode ? 12 : 16) - 6;
+            .digest().readUInt32BE(0) % 16 - 6;
           const count = Math.max(current.realCount, current.realCount + current.offset + jitter);
           const history = current.history.map(point => point.at === current.at ? { at: point.at, count } : point);
           return { ...current, jitter, count, history, balancedMode: audienceBalancedMode(count, current.balancedMode), jitterApplied: true };
