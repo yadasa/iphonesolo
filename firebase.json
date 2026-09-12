@@ -92,6 +92,10 @@
         "destination": "/code/index.html"
       },
       {
+        "source": "/laptop",
+        "destination": "/laptop/index.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

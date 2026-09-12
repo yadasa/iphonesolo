@@ -2,3 +2,8 @@
 firebase-debug.log
 node_modules/
 .DS_Store
+
+# Native laptop build outputs
+laptop/**/bin/
+laptop/**/obj/
+laptop/windows/out/

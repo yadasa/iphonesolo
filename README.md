@@ -65,3 +65,7 @@ Imported photos and videos remain inside the browser tab and are never uploaded.
 ## Attribution
 
 This project is an independent implementation based on observed public behavior. It does not contain Solo's source code, private assets, branding, or copied implementation code.
+
+## Laptop hinge effect
+
+Open `/laptop` for a bottom-hinge version of the effect with local photo loading, a hinge-angle slider, calibration and effect strength. The [`laptop/`](laptop/README.md) subproject also includes a persistent native Windows tray app: optional sign-in startup, hardware hinge detection with manual fallback, everyday click-through shading, and a native live-desktop fold viewing mode. Build/setup details and hardware/interaction limits are in the subproject README.

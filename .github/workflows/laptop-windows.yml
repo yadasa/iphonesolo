@@ -1,0 +1,42 @@
+name: Build Laptop Solo for Windows
+on:
+  push:
+    paths: ['laptop/**', 'public/laptop/**', 'test/laptop.test.js', '.github/workflows/laptop-windows.yml']
+  pull_request:
+    paths: ['laptop/**', 'public/laptop/**', 'test/laptop.test.js', '.github/workflows/laptop-windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        runtime: [win-x64, win-arm64]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Check browser hinge geometry
+        run: node --test test/laptop.test.js
+      - name: Check native hinge geometry
+        run: dotnet run --project laptop/tests/HingeMath.Tests.csproj -c Release
+      - name: Publish self-contained desktop application
+        shell: pwsh
+        run: ./laptop/windows/build.ps1 -Runtime '${{ matrix.runtime }}'
+      - name: Smoke test desktop startup and shutdown
+        if: matrix.runtime == 'win-x64'
+        shell: pwsh
+        run: |
+          $app = Start-Process ./laptop/windows/out/win-x64/LaptopSolo.exe -ArgumentList '--smoke-test' -PassThru
+          if (-not $app.WaitForExit(30000)) { $app.Kill(); throw 'Desktop smoke test timed out.' }
+          if ($app.ExitCode -ne 0) { throw "Desktop smoke test failed: $($app.ExitCode)" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LaptopSolo-${{ matrix.runtime }}
+          path: laptop/windows/out/${{ matrix.runtime }}/
+          if-no-files-found: error
