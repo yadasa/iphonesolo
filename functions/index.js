@@ -291,6 +291,13 @@ exports.codeDownload = httpFunction(
 
 const AUDIENCE_INTERVAL_MS = 10_000;
 
+// Retain the percentage mode between thresholds to avoid rapid switching.
+function audienceBalancedMode(count, previous = false) {
+  if (count > 200) return true;
+  if (count < 100) return false;
+  return previous;
+}
+
 // One transaction elects the published snapshot for each server-time bucket.
 // Keep this separate from presence so display adjustments never change analytics.
 exports.audienceSnapshot = httpFunction(
@@ -314,8 +321,10 @@ exports.audienceSnapshot = httpFunction(
         const random = createHash("sha256").update("audience:" + at).digest().readUInt32BE(0) / 0x100000000;
         const result = await ref.transaction(current => {
           if (current && current.at >= at) return current;
+          const balancedMode = audienceBalancedMode(current?.count ?? 0, current?.balancedMode === true);
+          const multiplier = balancedMode ? 0.80 + random * 0.40 : 0.83 + random * 0.50;
           const offset = current
-            ? Math.max(1, Math.round(current.offset * (0.83 + random * 0.50)))
+            ? Math.max(1, Math.round(current.offset * multiplier))
             : 63;
           // Publish the percentage stage privately; finalize the additive stage
           // one second later before returning the shared display to clients.
@@ -326,7 +335,7 @@ exports.audienceSnapshot = httpFunction(
           const history = (Array.isArray(current?.history) ? current.history : [])
             .filter(point => point.at > at - 3_600_000).slice(-359);
           history.push({ at, count });
-          return { at, offset, jitter, count, history, realCount, jitterDueAt, jitterApplied: false };
+          return { at, offset, jitter, count, history, realCount, balancedMode, jitterDueAt, jitterApplied: false };
         }, undefined, false);
         snapshot = result.snapshot.val();
       }
@@ -340,7 +349,7 @@ exports.audienceSnapshot = httpFunction(
             .digest().readUInt32BE(0) % 16 - 6;
           const count = Math.max(current.realCount, current.realCount + current.offset + jitter);
           const history = current.history.map(point => point.at === current.at ? { at: point.at, count } : point);
-          return { ...current, jitter, count, history, jitterApplied: true };
+          return { ...current, jitter, count, history, balancedMode: audienceBalancedMode(count, current.balancedMode), jitterApplied: true };
         }, undefined, false);
         snapshot = result.snapshot.val();
       }
