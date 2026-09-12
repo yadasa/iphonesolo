@@ -315,7 +315,7 @@ exports.audienceSnapshot = httpFunction(
         const result = await ref.transaction(current => {
           if (current && current.at >= at) return current;
           const offset = current
-            ? Math.max(1, Math.round(current.offset * (0.73 + random * 0.60)))
+            ? Math.max(1, Math.round(current.offset * (0.83 + random * 0.50)))
             : 63;
           // Independent shared variation: integer -6 <= jitter <= 7.
           const jitter = createHash("sha256").update("audience-jitter:" + at)
