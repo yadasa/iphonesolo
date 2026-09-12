@@ -317,14 +317,30 @@ exports.audienceSnapshot = httpFunction(
           const offset = current
             ? Math.max(1, Math.round(current.offset * (0.83 + random * 0.50)))
             : 63;
-          // Independent shared variation: integer -6 <= jitter <= 9.
-          const jitter = createHash("sha256").update("audience-jitter:" + at)
-            .digest().readUInt32BE(0) % 16 - 6;
-          const count = Math.max(clients.size, clients.size + offset + jitter);
+          // Publish the percentage stage privately; finalize the additive stage
+          // one second later before returning the shared display to clients.
+          const jitter = 0;
+          const realCount = clients.size;
+          const count = realCount + offset;
+          const jitterDueAt = Date.now() + 1_000;
           const history = (Array.isArray(current?.history) ? current.history : [])
             .filter(point => point.at > at - 3_600_000).slice(-359);
           history.push({ at, count });
-          return { at, offset, jitter, count, history };
+          return { at, offset, jitter, count, history, realCount, jitterDueAt, jitterApplied: false };
+        }, undefined, false);
+        snapshot = result.snapshot.val();
+      }
+      if (snapshot.jitterApplied === false && Number.isFinite(snapshot.jitterDueAt)) {
+        const delay = Math.max(0, snapshot.jitterDueAt - Date.now());
+        if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay));
+        const result = await ref.transaction(current => {
+          if (!current || current.at !== snapshot.at || current.jitterApplied !== false) return current;
+          // Independent shared variation: integer -6 <= jitter <= 9.
+          const jitter = createHash("sha256").update("audience-jitter:" + current.at)
+            .digest().readUInt32BE(0) % 16 - 6;
+          const count = Math.max(current.realCount, current.realCount + current.offset + jitter);
+          const history = current.history.map(point => point.at === current.at ? { at: point.at, count } : point);
+          return { ...current, jitter, count, history, jitterApplied: true };
         }, undefined, false);
         snapshot = result.snapshot.val();
       }
