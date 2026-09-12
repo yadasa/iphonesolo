@@ -317,9 +317,9 @@ exports.audienceSnapshot = httpFunction(
           const offset = current
             ? Math.max(1, Math.round(current.offset * (0.83 + random * 0.50)))
             : 63;
-          // Independent shared variation: integer -6 <= jitter <= 7.
+          // Independent shared variation: integer -6 <= jitter <= 9.
           const jitter = createHash("sha256").update("audience-jitter:" + at)
-            .digest().readUInt32BE(0) % 14 - 6;
+            .digest().readUInt32BE(0) % 16 - 6;
           const count = Math.max(clients.size, clients.size + offset + jitter);
           const history = (Array.isArray(current?.history) ? current.history : [])
             .filter(point => point.at > at - 3_600_000).slice(-359);
