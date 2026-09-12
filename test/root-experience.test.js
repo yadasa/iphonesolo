@@ -105,7 +105,7 @@ test("home-screen products occupy the requested slots", async () => {
     ["dock-2", "1 on 1 sessions"],
     ["screen-r5-c3", "YouTube · Asaday"],
     ["screen-r5-c4", "TikTok · ozaiek"],
-    ["screen-r6-c4", "Threads · keiazo"],
+    ["screen-r4-c4", "Threads · keiazo"],
   ]) {
     assert.match(
       source,
@@ -169,9 +169,12 @@ test("online-user widget is backed by deploy-verified Firebase presence", async 
   );
   assert.match(source, /tilt-e02fd-default-rtdb\.firebaseio\.com/);
   assert.match(source, /"\.sv":\s*[`"]timestamp[`"]|"\.sv":"timestamp"/);
-  assert.match(source, /new Set(?:\(\))?/);
-  assert.match(source, /\w+\s*-\s*\w+\.seenAt\s*<\s*6e4/);
-  assert.doesNotMatch(source, /\/api\/audience/);
+  const server = await readFile("functions/index.js", "utf8");
+  assert.match(server, /new Set/);
+  assert.match(server, /now - p\.seenAt < 60_000/);
+  assert.match(server, /ref\.transaction/);
+  assert.match(source, /\/api\/audience/);
+  assert.doesNotMatch(source, /displayOffset/);
   assert.match(rules, /"presence"/);
   assert.match(rules, /newData\.hasChildren\(\['clientId', 'tabId', 'seenAt'\]\)/);
   assert.match(rules, /"\$other"/);
