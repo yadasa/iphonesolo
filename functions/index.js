@@ -315,12 +315,12 @@ exports.audienceSnapshot = httpFunction(
         const result = await ref.transaction(current => {
           if (current && current.at >= at) return current;
           const offset = current
-            ? Math.max(1, Math.round(current.offset * (0.8 + random * 0.4)))
+            ? Math.max(1, Math.round(current.offset * (0.73 + random * 0.60)))
             : 63;
           // Independent shared variation: integer -6 <= jitter <= 7.
           const jitter = createHash("sha256").update("audience-jitter:" + at)
             .digest().readUInt32BE(0) % 14 - 6;
-          const count = Math.max(0, clients.size + offset + jitter);
+          const count = Math.max(clients.size, clients.size + offset + jitter);
           const history = (Array.isArray(current?.history) ? current.history : [])
             .filter(point => point.at > at - 3_600_000).slice(-359);
           history.push({ at, count });
